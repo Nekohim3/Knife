@@ -1,8 +1,11 @@
-﻿<Window x:Class="Knife.MainWindow"
+﻿<Controls:MetroWindow x:Class="Knife.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
+        xmlns:awe="http://schemas.awesomium.com/winfx"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="MainWindow" Height="350" Width="525">
+        Title="MainWindow" Height="720" Width="1280">
     <Grid>
-        
+        <awe:WebControl Name="wb" Margin="0,0,0,28" Visibility="Hidden" InitializeView="wb_InitializeView"  LoadingFrameComplete="wb_LoadingFrameComplete"/>
+
     </Grid>
-</Window>
+</Controls:MetroWindow>
