@@ -1,0 +1,13 @@
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\Knife.exe.config
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\Knife.exe
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\Knife.pdb
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\obj\Debug\Knife.csprojResolveAssemblyReference.cache
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\obj\Debug\MainWindow.baml
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\obj\Debug\MainWindow.g.cs
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\obj\Debug\App.g.cs
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\obj\Debug\Knife_MarkupCompile.cache
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\obj\Debug\Knife.g.resources
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\obj\Debug\Knife.Properties.Resources.resources
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\obj\Debug\Knife.csproj.GenerateResource.Cache
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\obj\Debug\Knife.exe
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\obj\Debug\Knife.pdb
