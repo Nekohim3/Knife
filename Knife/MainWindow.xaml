@@ -3,9 +3,18 @@
         xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
         xmlns:awe="http://schemas.awesomium.com/winfx"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="MainWindow" Height="720" Width="1280">
-    <Grid>
+        Title="" Height="360" Width="640" WindowTransitionsEnabled="False" Loaded="MetroWindow_Loaded" MinHeight="360" MinWidth="640" Name="MW" Closing="MW_Closing"
+    >
+    <Grid Background="#ff252525">
         <awe:WebControl Name="wb" Margin="0,0,0,28" Visibility="Hidden" InitializeView="wb_InitializeView"  LoadingFrameComplete="wb_LoadingFrameComplete"/>
+        <Button Content="Settings" HorizontalAlignment="Right" VerticalAlignment="Bottom" Width="100" Style="{DynamicResource SquareButtonStyle}" Click="Button_Click_2"  Height="28"/>
+        <Button Content="Start" HorizontalAlignment="Right" VerticalAlignment="Bottom" Width="100" Style="{DynamicResource SquareButtonStyle}" Click="Button_Click_1"  Height="28" Margin="0,0,100,0"/>
+        <ScrollViewer Margin="0,0,0,28" Name="sett" HorizontalAlignment="Right" Width="200">
+            <Grid Background="#ff353535">
+                <Label Content="GetCount" HorizontalAlignment="Left" VerticalAlignment="Top" Width="186" Background="#ff202020" Name="LB_GetCount"/>
+                <Slider HorizontalAlignment="Left" Margin="10,31,0,0" VerticalAlignment="Top" Width="166" Name="GetCountSlider" Value="1" Minimum="1" Maximum="100" SmallChange="1"/>
+            </Grid>
+        </ScrollViewer>
 
     </Grid>
 </Controls:MetroWindow>

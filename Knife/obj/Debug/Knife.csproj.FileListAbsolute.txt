@@ -41,3 +41,15 @@ c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\aweso
 c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\inspector.pak
 c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\xinput9_1_0.dll
 c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\pdf_js.pak
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\obj\Debug\App.baml
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\WpfAnimatedGif.dll
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\Nading Network Library Client.dll
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\Nading Network Library Server.dll
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\EntityFramework.dll
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\EntityFramework.SqlServer.dll
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\System.Data.SQLite.dll
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\System.Data.SQLite.EF6.dll
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\System.Data.SQLite.Linq.dll
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\EntityFramework.xml
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\EntityFramework.SqlServer.xml
+c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\System.Data.SQLite.xml
