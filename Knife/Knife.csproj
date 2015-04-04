@@ -52,9 +52,6 @@
     <Reference Include="Nading Network Library Client">
       <HintPath>..\packages\Nading Network Library Client.dll</HintPath>
     </Reference>
-    <Reference Include="Nading Network Library Server">
-      <HintPath>..\packages\Nading Network Library Server.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Data" />
