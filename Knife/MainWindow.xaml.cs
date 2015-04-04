@@ -19,6 +19,9 @@ using System.IO;
 using System.Data.SQLite;
 using System.Data;
 using System.Threading;
+using System.Runtime.InteropServices;
+using WpfAnimatedGif;
+using System.Windows.Threading;
 namespace Knife
 {
     /// <summary>
@@ -29,20 +32,126 @@ namespace Knife
         public MainWindow()
         {
             InitializeComponent();
+            client.Connected += client_Connected;
+            client.Disconnected += client_Disconnected;
+            client.PacketReceived += client_PacketReceived;
+
         }
         string accid = "";
-        bool FirstInit = true;
         string Cookie = "";
         string sessionId = "";
         bool setts = false;
-        private void wb_InitializeView(object sender, Awesomium.Core.WebViewEventArgs e)
+        Point lastwndsize = new Point();
+        bool Steam_waitforlog = false;
+        Nading.Network.Client.clsClient client = new Nading.Network.Client.clsClient();
+        string ServerIp = "94.19.181.93";
+        string ServerPort = "18346";
+        ConnState ClientState = ConnState.Disconnected;
+        SteamAuthState steamAuthState = SteamAuthState.NotAuth;
+        enum ConnState
         {
-            wb.WebSession = Awesomium.Core.WebCore.CreateWebSession(System.Environment.CurrentDirectory, new Awesomium.Core.WebPreferences());
+            Disconnected,
+            Connecting,
+            Connected
         }
-
-        private void wb_LoadingFrameComplete(object sender, Awesomium.Core.FrameEventArgs e)
+        enum SteamAuthState
         {
-            if(FirstInit)
+            Auth,
+            NotAuth,
+            Authing,
+            NotLogged
+        }
+        bool initrun = false;
+
+        void client_PacketReceived(byte PacketType, string Packet)
+        {
+
+        }
+        void client_Disconnected()
+        {
+            ClientState = ConnState.Disconnected;
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
+            {
+                Img_ConnectToServer.Source = new BitmapImage(new Uri(AppDomain.CurrentDomain.BaseDirectory + "Error.png"));
+                Img_ConnectToServer.ToolTip = "Disconnected";
+            }));
+            steamAuthState = SteamAuthState.NotAuth;
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
+            {
+                Img_SteamAuth.Source = new BitmapImage(new Uri(AppDomain.CurrentDomain.BaseDirectory + "error.png"));
+                Img_SteamAuth.ToolTip = "NotAuth";
+            }));
+        }
+        void client_Connected()
+        {
+            ClientState = ConnState.Connected;
+        }
+        void Init()
+        {
+            if (initrun)
+                return;
+            initrun = true;
+            if (ClientState == ConnState.Disconnected)
+            {
+                InitConn();
+            }
+            if(ClientState == ConnState.Connected && steamAuthState == SteamAuthState.NotAuth)
+            {
+                SteamAuth();
+            }
+            initrun = false;
+        }
+        void InitConn()
+        {
+            Dispatcher.Invoke(new Action(() =>
+            {
+                Img_ConnectToServer.Source = new BitmapImage(new Uri(AppDomain.CurrentDomain.BaseDirectory + "loading.gif"));
+                Img_ConnectToServer.ToolTip = "Connecting";
+            }));
+            ClientState = ConnState.Connecting;
+            
+            try
+            {
+                client.Connect(ServerIp, ServerPort, false);
+                Dispatcher.Invoke(new Action(() =>
+                {
+                    Img_ConnectToServer.Source = new BitmapImage(new Uri(AppDomain.CurrentDomain.BaseDirectory + "ok.png"));
+                    Img_ConnectToServer.ToolTip = "Connected";
+                }));
+                ClientState = ConnState.Connected;
+            }
+            catch
+            {
+                Dispatcher.Invoke(new Action(() =>
+                {
+                    Img_ConnectToServer.Source = new BitmapImage(new Uri(AppDomain.CurrentDomain.BaseDirectory + "error.png"));
+                    Img_ConnectToServer.ToolTip = "Disconnected";
+                }));
+                ClientState = ConnState.Disconnected;
+            }
+        }
+        void SteamAuth()
+        {
+            steamAuthState = SteamAuthState.Authing;
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
+            {
+                Img_SteamAuth.Source = new BitmapImage(new Uri(AppDomain.CurrentDomain.BaseDirectory + "loading.gif"));
+                Img_SteamAuth.ToolTip = "Authing";
+            }));
+            wbload = false;
+            Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(delegate
+            {
+                wb.Source = new Uri("http://google.com");
+                wb.Source = new Uri("http://steamcommunity.com/market/");
+            }));
+            while (!wbload)
+            {
+                Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(delegate
+                {
+                }));
+            }
+            Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(delegate
+            {
                 if (wb.Source.AbsoluteUri == "http://steamcommunity.com/market/" || wb.Source.AbsoluteUri == "https://steamcommunity.com/market/")
                 {
                     HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
@@ -51,32 +160,59 @@ namespace Knife
                     {
                         double mon = Convert.ToDouble(doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").First().InnerText.Split(' ')[0]);
                         accid = doc.DocumentNode.Descendants("span").Where(c => c.Id == "account_pulldown").First().InnerText;
-                        if(FirstInit)
+                        if (GetCookies())
                         {
-                            wb.Visibility = System.Windows.Visibility.Hidden;
-                            MW.Width = 640;
-                            MW.Height = 360;
-                            FirstInit = false;
-                            Init();
+                            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
+                            {
+                                steamAuthState = SteamAuthState.Auth;
+                                Img_SteamAuth.Source = new BitmapImage(new Uri(AppDomain.CurrentDomain.BaseDirectory + "ok.png"));
+                                Img_SteamAuth.ToolTip = "Auth";
+                            }));
+                        }
+                        else
+                        {
+                            steamAuthState = SteamAuthState.NotAuth;
+                            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
+                            {
+                                Img_SteamAuth.Source = new BitmapImage(new Uri(AppDomain.CurrentDomain.BaseDirectory + "error.png"));
+                                Img_SteamAuth.ToolTip = "NotAuth";
+                            }));
                         }
                     }
                     else
                     {
-                        MessageBox.Show("Please log into steam!");
-                        wb.Visibility = System.Windows.Visibility.Visible;
-                        MW.Width = 1280;
-                        MW.Height = 720;
+                        steamAuthState = SteamAuthState.NotLogged;
+                        Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
+                        {
+                            Img_SteamAuth.Source = new BitmapImage(new Uri(AppDomain.CurrentDomain.BaseDirectory + "warning.png"));
+                            Img_SteamAuth.ToolTip = "You are not logged in steam. Please click here to login";
+                        }));
                     }
                 }
-        }
-        void Init()
-        {
-            if(!GetCookies())
-            {
-                MessageBox.Show("Error load cookies");
-                return;
-            }
+            }));
+            
 
+        }
+        bool wbload = false;
+        private void wb_InitializeView(object sender, Awesomium.Core.WebViewEventArgs e)
+        {
+            wb.WebSession = Awesomium.Core.WebCore.CreateWebSession(System.Environment.CurrentDirectory, new Awesomium.Core.WebPreferences());
+        }
+
+        private void wb_LoadingFrameComplete(object sender, Awesomium.Core.FrameEventArgs e)
+        {
+            wbload = true;
+            if(Steam_waitforlog)
+            {
+                if (wb.Source.AbsoluteUri == "http://steamcommunity.com/market/" || wb.Source.AbsoluteUri == "https://steamcommunity.com/market/")
+                {
+                    Steam_waitforlog = false;
+                    steamAuthState = SteamAuthState.NotAuth;
+                    wb.Visibility = System.Windows.Visibility.Hidden;
+                    Width = lastwndsize.X;
+                    Height = lastwndsize.Y;
+                }
+            }
         }
         bool GetCookies()
         {
@@ -120,33 +256,32 @@ namespace Knife
         }
         private void MetroWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            sett.Margin = new Thickness(0, 0, -sett.Width, 28);
-            wb.Source = new Uri("http://steamcommunity.com/market/");
+            ClientState = ConnState.Disconnected;
+            steamAuthState = SteamAuthState.NotAuth;
+            Img_ConnectToServer.Source = new BitmapImage(new Uri(AppDomain.CurrentDomain.BaseDirectory + "error.png"));
+            Img_ConnectToServer.ToolTip = "Disconnected";
+            Img_SteamAuth.Source = new BitmapImage(new Uri(AppDomain.CurrentDomain.BaseDirectory + "error.png"));
+            Img_SteamAuth.ToolTip = "NotAuth";
+            sett.Margin = new Thickness(0, 0, -sett.Width, 30);
+            System.Timers.Timer CheckAllTimer = new System.Timers.Timer(1000);
+            CheckAllTimer.Elapsed += (ss, ee) =>
+            {
+                Init();
+            };
+            CheckAllTimer.Enabled = true;
+            
+
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+        void t_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            if (wb.Visibility == System.Windows.Visibility.Hidden)
-                wb.Visibility = System.Windows.Visibility.Visible;
-            else
-                wb.Visibility = System.Windows.Visibility.Hidden;
+            
         }
-        private void Button_Click1(object sender, RoutedEventArgs e)
-        {
-            Init();
-        }
-
         private void MW_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
 
         }
-
-        private void Button_Click_1(object sender, RoutedEventArgs e)
-        {
-
-        }
-
-        private void Button_Click_2(object sender, RoutedEventArgs e)
+        private void Settings_Button_Click(object sender, RoutedEventArgs e)
         {
             if (!setts)
             {
@@ -156,7 +291,7 @@ namespace Knife
                 //TB_Money.Text = money.ToString();
                 ThicknessAnimation ta = new ThicknessAnimation();
                 ta.From = sett.Margin;
-                ta.To = new Thickness(0, 0, 0, 28);
+                ta.To = new Thickness(0, 0, 0, 30);
                 ta.Duration = TimeSpan.FromMilliseconds(500);
                 ta.EasingFunction = new PowerEase()
                 {
@@ -169,7 +304,7 @@ namespace Knife
                 setts = false;
                 ThicknessAnimation ta = new ThicknessAnimation();
                 ta.From = sett.Margin;
-                ta.To = new Thickness(0, 0, -sett.Width, 28);
+                ta.To = new Thickness(0, 0, -sett.Width, 30);
                 ta.Duration = TimeSpan.FromMilliseconds(500);
                 ta.EasingFunction = new PowerEase()
                 {
@@ -178,13 +313,29 @@ namespace Knife
                 sett.BeginAnimation(MarginProperty, ta);
             }
         }
+        private void Img_SteamAuth_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if(steamAuthState == SteamAuthState.NotLogged)
+            {
+                lastwndsize = new Point(Width, Height);
+                wb.Visibility = System.Windows.Visibility.Visible;
+                Width = 1280;
+                Height = 720;
+                wb.Source = new Uri("https://steamcommunity.com/login/home/?goto=market%2F");
+                Steam_waitforlog = true;
+            }
+        }
     }
-    public enum State
+    public enum ConnMessType
     {
-        search,
-        get,
-        banned,
-        message,
-        buying
+        Auth,
+        Log,
+        Com,
+        AccessGranted,
+        AccessDenied,
+        Replace,
+        Alivereq,
+        Aliveres,
+        Update,
     }
 }

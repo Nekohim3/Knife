@@ -27,7 +27,6 @@ c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\fr\Sy
 c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\it\System.Windows.Interactivity.resources.dll
 c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\ja\System.Windows.Interactivity.resources.dll
 c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\ko\System.Windows.Interactivity.resources.dll
-c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\ru\System.Windows.Interactivity.resources.dll
 c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\zh-Hans\System.Windows.Interactivity.resources.dll
 c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\zh-Hant\System.Windows.Interactivity.resources.dll
 c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\awesomium.dll
@@ -53,3 +52,4 @@ c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\Syste
 c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\EntityFramework.xml
 c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\EntityFramework.SqlServer.xml
 c:\users\alice\documents\visual studio 2013\Projects\Knife\Knife\bin\Debug\System.Data.SQLite.xml
+C:\Users\ALICE\Documents\Visual Studio 2013\Projects\Knife\Knife\bin\Debug\System.Windows.Interactivity.xml
