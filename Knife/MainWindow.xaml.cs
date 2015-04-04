@@ -32,36 +32,142 @@ namespace Knife
         public MainWindow()
         {
             InitializeComponent();
+            states = new States(WFH_Img_ConnectToServer, WFH_Img_SteamAuth);
             client.Connected += client_Connected;
             client.Disconnected += client_Disconnected;
             client.PacketReceived += client_PacketReceived;
 
         }
+        States states;
         string accid = "";
         string Cookie = "";
         string sessionId = "";
         bool setts = false;
+        bool IsInitRunned = false;
         Point lastwndsize = new Point();
         bool Steam_waitforlog = false;
         Nading.Network.Client.clsClient client = new Nading.Network.Client.clsClient();
         string ServerIp = "94.19.181.93";
         string ServerPort = "18346";
-        ConnState ClientState = ConnState.Disconnected;
-        SteamAuthState steamAuthState = SteamAuthState.NotAuth;
-        enum ConnState
+        public class States
+        {
+            System.Windows.Forms.Integration.WindowsFormsHost WFH_Img_ConnectToServer;
+            System.Windows.Forms.Integration.WindowsFormsHost WFH_Img_SteamAuth;
+            public States(System.Windows.Forms.Integration.WindowsFormsHost img1, System.Windows.Forms.Integration.WindowsFormsHost img2)
+            {
+                WFH_Img_ConnectToServer = img1;
+                WFH_Img_SteamAuth = img2;
+            }
+
+            System.Windows.Forms.ToolTip tt_ConnectToServer = new System.Windows.Forms.ToolTip()
+            {
+                BackColor = System.Drawing.Color.FromArgb(255, 15, 15, 15),
+                ForeColor = System.Drawing.Color.FromArgb(255, 200, 200, 200)
+            };
+            System.Windows.Forms.ToolTip tt_SteamAuth = new System.Windows.Forms.ToolTip()
+            {
+                BackColor = System.Drawing.Color.FromArgb(255, 15, 15, 15),
+                ForeColor = System.Drawing.Color.FromArgb(255, 200, 200, 200)
+            };
+
+            private ConnState _ClientState;
+            public ConnState ClientState
+            {
+                get
+                {
+                    return _ClientState;
+                }
+                set
+                {
+                    _ClientState = value;
+                    if (_ClientState == ConnState.Connected)
+                    {
+                        WFH_Img_ConnectToServer.Dispatcher.Invoke(new Action(() =>
+                        {
+                            (WFH_Img_ConnectToServer.Child as System.Windows.Forms.PictureBox).Image = System.Drawing.Image.FromFile(AppDomain.CurrentDomain.BaseDirectory + "ok.png");
+                            tt_ConnectToServer.SetToolTip(WFH_Img_ConnectToServer.Child as System.Windows.Forms.PictureBox, "Connected");
+                        }));
+                    }
+                    if (_ClientState == ConnState.Connecting)
+                    {
+                        WFH_Img_ConnectToServer.Dispatcher.Invoke(new Action(() =>
+                        {
+                            (WFH_Img_ConnectToServer.Child as System.Windows.Forms.PictureBox).Image = System.Drawing.Image.FromFile(AppDomain.CurrentDomain.BaseDirectory + "loading.gif");
+                            tt_ConnectToServer.SetToolTip(WFH_Img_ConnectToServer.Child as System.Windows.Forms.PictureBox, "Connecting");
+                        }));
+                    }
+                    if (_ClientState == ConnState.Disconnected)
+                    {
+                        WFH_Img_ConnectToServer.Dispatcher.Invoke(new Action(() =>
+                        {
+                            (WFH_Img_ConnectToServer.Child as System.Windows.Forms.PictureBox).Image = System.Drawing.Image.FromFile(AppDomain.CurrentDomain.BaseDirectory + "error.png");
+                            tt_ConnectToServer.SetToolTip(WFH_Img_ConnectToServer.Child as System.Windows.Forms.PictureBox, "Disconnected");
+                        }));
+                    }
+                }
+            }
+
+            private SteamAuthState _steamAuthState;
+            public SteamAuthState steamAuthState
+            {
+                get
+                {
+                    return _steamAuthState;
+                }
+                set
+                {
+                    if (_ClientState == ConnState.Connected)
+                        _steamAuthState = value;
+                    else
+                        _steamAuthState = SteamAuthState.NotAuth;
+                    if (_steamAuthState == SteamAuthState.Auth)
+                    {
+                        WFH_Img_SteamAuth.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
+                        {
+                            (WFH_Img_SteamAuth.Child as System.Windows.Forms.PictureBox).Image = System.Drawing.Image.FromFile(AppDomain.CurrentDomain.BaseDirectory + "ok.png");
+                            tt_SteamAuth.SetToolTip(WFH_Img_SteamAuth.Child as System.Windows.Forms.PictureBox, "Auth");
+                        }));
+                    }
+                    if (_steamAuthState == SteamAuthState.Authing)
+                    {
+                        WFH_Img_SteamAuth.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
+                        {
+                            (WFH_Img_SteamAuth.Child as System.Windows.Forms.PictureBox).Image = System.Drawing.Image.FromFile(AppDomain.CurrentDomain.BaseDirectory + "loading.gif");
+                            tt_SteamAuth.SetToolTip(WFH_Img_SteamAuth.Child as System.Windows.Forms.PictureBox, "Authing");
+                        }));
+                    }
+                    if (_steamAuthState == SteamAuthState.NotAuth)
+                    {
+                        WFH_Img_SteamAuth.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
+                        {
+                            (WFH_Img_SteamAuth.Child as System.Windows.Forms.PictureBox).Image = System.Drawing.Image.FromFile(AppDomain.CurrentDomain.BaseDirectory + "error.png");
+                            tt_SteamAuth.SetToolTip(WFH_Img_SteamAuth.Child as System.Windows.Forms.PictureBox, "NotAuth");
+                        }));
+                    }
+                    if (_steamAuthState == SteamAuthState.NotLogged)
+                    {
+                        WFH_Img_SteamAuth.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
+                        {
+                            (WFH_Img_SteamAuth.Child as System.Windows.Forms.PictureBox).Image = System.Drawing.Image.FromFile(AppDomain.CurrentDomain.BaseDirectory + "warning.png");
+                            tt_SteamAuth.SetToolTip(WFH_Img_SteamAuth.Child as System.Windows.Forms.PictureBox, "You are not logged in steam. Please click here to login");
+                        }));
+                    }
+                }
+            }
+        }
+        public enum ConnState
         {
             Disconnected,
             Connecting,
             Connected
         }
-        enum SteamAuthState
+        public enum SteamAuthState
         {
             Auth,
             NotAuth,
             Authing,
             NotLogged
         }
-        bool initrun = false;
 
         void client_PacketReceived(byte PacketType, string Packet)
         {
@@ -69,75 +175,44 @@ namespace Knife
         }
         void client_Disconnected()
         {
-            ClientState = ConnState.Disconnected;
-            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
-            {
-                Img_ConnectToServer.Source = new BitmapImage(new Uri(AppDomain.CurrentDomain.BaseDirectory + "Error.png"));
-                Img_ConnectToServer.ToolTip = "Disconnected";
-            }));
-            steamAuthState = SteamAuthState.NotAuth;
-            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
-            {
-                Img_SteamAuth.Source = new BitmapImage(new Uri(AppDomain.CurrentDomain.BaseDirectory + "error.png"));
-                Img_SteamAuth.ToolTip = "NotAuth";
-            }));
+            states.ClientState = ConnState.Disconnected;
+            states.steamAuthState = SteamAuthState.NotAuth;
         }
         void client_Connected()
         {
-            ClientState = ConnState.Connected;
+            states.ClientState = ConnState.Connected;
         }
         void Init()
         {
-            if (initrun)
+            if (IsInitRunned)
                 return;
-            initrun = true;
-            if (ClientState == ConnState.Disconnected)
+            IsInitRunned = true;
+            if (states.ClientState == ConnState.Disconnected)
             {
                 InitConn();
             }
-            if(ClientState == ConnState.Connected && steamAuthState == SteamAuthState.NotAuth)
+            if (states.ClientState == ConnState.Connected && states.steamAuthState == SteamAuthState.NotAuth)
             {
                 SteamAuth();
             }
-            initrun = false;
+            IsInitRunned = false;
         }
         void InitConn()
         {
-            Dispatcher.Invoke(new Action(() =>
-            {
-                Img_ConnectToServer.Source = new BitmapImage(new Uri(AppDomain.CurrentDomain.BaseDirectory + "loading.gif"));
-                Img_ConnectToServer.ToolTip = "Connecting";
-            }));
-            ClientState = ConnState.Connecting;
-            
+            states.ClientState = ConnState.Connecting;
             try
             {
                 client.Connect(ServerIp, ServerPort, false);
-                Dispatcher.Invoke(new Action(() =>
-                {
-                    Img_ConnectToServer.Source = new BitmapImage(new Uri(AppDomain.CurrentDomain.BaseDirectory + "ok.png"));
-                    Img_ConnectToServer.ToolTip = "Connected";
-                }));
-                ClientState = ConnState.Connected;
+                states.ClientState = ConnState.Connected;
             }
             catch
             {
-                Dispatcher.Invoke(new Action(() =>
-                {
-                    Img_ConnectToServer.Source = new BitmapImage(new Uri(AppDomain.CurrentDomain.BaseDirectory + "error.png"));
-                    Img_ConnectToServer.ToolTip = "Disconnected";
-                }));
-                ClientState = ConnState.Disconnected;
+                states.ClientState = ConnState.Disconnected;
             }
         }
         void SteamAuth()
         {
-            steamAuthState = SteamAuthState.Authing;
-            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
-            {
-                Img_SteamAuth.Source = new BitmapImage(new Uri(AppDomain.CurrentDomain.BaseDirectory + "loading.gif"));
-                Img_SteamAuth.ToolTip = "Authing";
-            }));
+            states.steamAuthState = SteamAuthState.Authing;
             wbload = false;
             Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(delegate
             {
@@ -146,9 +221,7 @@ namespace Knife
             }));
             while (!wbload)
             {
-                Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(delegate
-                {
-                }));
+                Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(delegate{ }));
             }
             Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(delegate
             {
@@ -162,31 +235,17 @@ namespace Knife
                         accid = doc.DocumentNode.Descendants("span").Where(c => c.Id == "account_pulldown").First().InnerText;
                         if (GetCookies())
                         {
-                            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
-                            {
-                                steamAuthState = SteamAuthState.Auth;
-                                Img_SteamAuth.Source = new BitmapImage(new Uri(AppDomain.CurrentDomain.BaseDirectory + "ok.png"));
-                                Img_SteamAuth.ToolTip = "Auth";
-                            }));
+                            states.steamAuthState = SteamAuthState.Auth;
+                            
                         }
                         else
                         {
-                            steamAuthState = SteamAuthState.NotAuth;
-                            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
-                            {
-                                Img_SteamAuth.Source = new BitmapImage(new Uri(AppDomain.CurrentDomain.BaseDirectory + "error.png"));
-                                Img_SteamAuth.ToolTip = "NotAuth";
-                            }));
+                            states.steamAuthState = SteamAuthState.NotAuth;
                         }
                     }
                     else
                     {
-                        steamAuthState = SteamAuthState.NotLogged;
-                        Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
-                        {
-                            Img_SteamAuth.Source = new BitmapImage(new Uri(AppDomain.CurrentDomain.BaseDirectory + "warning.png"));
-                            Img_SteamAuth.ToolTip = "You are not logged in steam. Please click here to login";
-                        }));
+                        states.steamAuthState = SteamAuthState.NotLogged;
                     }
                 }
             }));
@@ -201,13 +260,14 @@ namespace Knife
 
         private void wb_LoadingFrameComplete(object sender, Awesomium.Core.FrameEventArgs e)
         {
+            
             wbload = true;
             if(Steam_waitforlog)
             {
                 if (wb.Source.AbsoluteUri == "http://steamcommunity.com/market/" || wb.Source.AbsoluteUri == "https://steamcommunity.com/market/")
                 {
                     Steam_waitforlog = false;
-                    steamAuthState = SteamAuthState.NotAuth;
+                    states.steamAuthState = SteamAuthState.NotAuth;
                     wb.Visibility = System.Windows.Visibility.Hidden;
                     Width = lastwndsize.X;
                     Height = lastwndsize.Y;
@@ -256,12 +316,8 @@ namespace Knife
         }
         private void MetroWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            ClientState = ConnState.Disconnected;
-            steamAuthState = SteamAuthState.NotAuth;
-            Img_ConnectToServer.Source = new BitmapImage(new Uri(AppDomain.CurrentDomain.BaseDirectory + "error.png"));
-            Img_ConnectToServer.ToolTip = "Disconnected";
-            Img_SteamAuth.Source = new BitmapImage(new Uri(AppDomain.CurrentDomain.BaseDirectory + "error.png"));
-            Img_SteamAuth.ToolTip = "NotAuth";
+            states.ClientState = ConnState.Disconnected;
+            states.steamAuthState = SteamAuthState.NotAuth;
             sett.Margin = new Thickness(0, 0, -sett.Width, 30);
             System.Timers.Timer CheckAllTimer = new System.Timers.Timer(1000);
             CheckAllTimer.Elapsed += (ss, ee) =>
@@ -315,7 +371,7 @@ namespace Knife
         }
         private void Img_SteamAuth_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            if(steamAuthState == SteamAuthState.NotLogged)
+            if (states.steamAuthState == SteamAuthState.NotLogged)
             {
                 lastwndsize = new Point(Width, Height);
                 wb.Visibility = System.Windows.Visibility.Visible;
