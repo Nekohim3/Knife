@@ -12,8 +12,8 @@
             <Label Background="#ff151515" Content="Авторизация в Steam" HorizontalAlignment="Left" VerticalAlignment="Top" Height="20" Width="150" Margin="490,220,0,0" VerticalContentAlignment="Center" Padding="0" HorizontalContentAlignment="Center"/>
             <Label Background="#ff151515" Content="Авторизация на сервере" HorizontalAlignment="Left" VerticalAlignment="Top" Height="20" Width="150" Margin="490,340,0,0" VerticalContentAlignment="Center" Padding="0" HorizontalContentAlignment="Center"/>
             <Image Source="ok.png" Name="Img_ConnectToServer" HorizontalAlignment="Left" Height="100" Margin="510,0,0,0" VerticalAlignment="Top" Width="100" RenderOptions.BitmapScalingMode="HighQuality"/>
-            <Image Source="ok.png" Name="Img_SteamAuth" HorizontalAlignment="Left" Height="100" Margin="510,120,0,0" VerticalAlignment="Top" Width="100" RenderOptions.BitmapScalingMode="HighQuality"/>
-            <Image Source="ok.png" Name="Img_ServerAuth" HorizontalAlignment="Left" Height="100" Margin="510,240,0,0" VerticalAlignment="Top" Width="100" RenderOptions.BitmapScalingMode="HighQuality" PreviewMouseLeftButtonUp="Img_SteamAuth_MouseLeftButtonUp"/>
+            <Image Source="ok.png" Name="Img_SteamAuth" HorizontalAlignment="Left" Height="100" Margin="510,120,0,0" VerticalAlignment="Top" Width="100" RenderOptions.BitmapScalingMode="HighQuality" PreviewMouseLeftButtonUp="Img_SteamAuth_PreviewMouseLeftButtonUp"/>
+            <Image Source="ok.png" Name="Img_ServerAuth" HorizontalAlignment="Left" Height="100" Margin="510,240,0,0" VerticalAlignment="Top" Width="100" RenderOptions.BitmapScalingMode="HighQuality"/>
 
 
         </Grid>
@@ -25,6 +25,7 @@
                 <Slider HorizontalAlignment="Left" Margin="10,31,0,0" VerticalAlignment="Top" Width="180" Name="GetCountSlider" Value="1" Minimum="1" Maximum="100" SmallChange="1"/>
             </Grid>
         </ScrollViewer>
+        <Label Name="log" Content="" HorizontalAlignment="Left" Margin="0,361,0,0" VerticalAlignment="Top" Width="477" Height="28"/>
 
     </Grid>
 </Controls:MetroWindow>

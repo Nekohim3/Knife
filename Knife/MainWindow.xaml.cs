@@ -16,8 +16,6 @@ using System.Windows.Shapes;
 using System.Windows.Media.Animation;
 using HtmlAgilityPack;
 using System.IO;
-using System.Data.SQLite;
-using System.Data;
 using System.Threading;
 using System.Runtime.InteropServices;
 using System.Windows.Threading;
@@ -334,7 +332,7 @@ namespace Knife
                     wb.Source = new Uri("http://steamcommunity.com/market/");
                     while (!wbload)
                     {
-                        Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(delegate{ })); 
+                        Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(delegate{ }));
                         if ((DateTime.Now - dt).TotalMilliseconds > 15000)
                         {
                             states.steamAuthState = SteamAuthState.NotAuth;
@@ -344,14 +342,14 @@ namespace Knife
                     if (wb.Source.AbsoluteUri == "http://steamcommunity.com/market/" || wb.Source.AbsoluteUri == "https://steamcommunity.com/market/")
                     {
                         HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
-                        doc.LoadHtml(wb.ExecuteJavascriptWithResult("document.documentElement.outerHTML").ToString());
+                        doc.LoadHtml(wb.ExecuteJavascriptWithResult("document.documentElement.outerHTML").ToString()); log.Content = "345";
                         if (doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").Count() != 0)
                         {
-                            MoneyLimit = Convert.ToDouble(doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").First().InnerText.Split(' ')[0]);
+                            MoneyLimit = Convert.ToDouble(doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").First().InnerText.Split(' ')[0]); log.Content = "348";
                             if (MoneyLimit > 1500)
                                 MoneyLimit = 1500;
-                            accid = doc.DocumentNode.Descendants("span").Where(c => c.Id == "account_pulldown").First().InnerText;
-                            string ProfileLink = doc.DocumentNode.Descendants("img").Where(x => x.Id == "headerUserAvatarIcon").First().ParentNode.GetAttributeValue("href", "");
+                            accid = doc.DocumentNode.Descendants("span").Where(c => c.Id == "account_pulldown").First().InnerText; log.Content = "351";
+                            string ProfileLink = doc.DocumentNode.Descendants("img").Where(x => x.Id == "headerUserAvatarIcon").First().ParentNode.GetAttributeValue("href", ""); log.Content = "352";
                             wb.Source = new Uri("http://google.com");
                             wb.Source = new Uri(ProfileLink);
                             wbload = false;
@@ -364,8 +362,8 @@ namespace Knife
                                     return;
                                 }
                             }
-                            doc.LoadHtml(wb.ExecuteJavascriptWithResult("document.documentElement.outerHTML").ToString());
-                            ProfileImgLink = doc.DocumentNode.Descendants("div").Where(x => x.GetAttributeValue("class", "") == "playerAvatar profile_header_size online").First().ChildNodes.Where(x => x.Name == "img").First().GetAttributeValue("src", "");
+                            doc.LoadHtml(wb.ExecuteJavascriptWithResult("document.documentElement.outerHTML").ToString()); log.Content = "365";
+                            ProfileImgLink = doc.DocumentNode.Descendants("div").Where(x => x.GetAttributeValue("class", "").IndexOf("playerAvatar profile_header_size") != -1).First().ChildNodes.Where(x => x.Name == "img").First().GetAttributeValue("src", ""); log.Content = "366";
                             if (GetCookies())
                             {
                                 states.steamAuthState = SteamAuthState.Auth;
@@ -382,9 +380,10 @@ namespace Knife
                         }
                     }
                 }
-                catch
+                catch(Exception e)
                 {
                     states.steamAuthState = SteamAuthState.NotAuth;
+                    MessageBox.Show(e.Message.ToString() +Environment.NewLine + e.ToString());
                 }
             })); 
             
@@ -507,7 +506,8 @@ namespace Knife
                 sett.BeginAnimation(MarginProperty, ta);
             }
         }
-        private void Img_SteamAuth_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+
+        private void Img_SteamAuth_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             if (states.steamAuthState == SteamAuthState.NotLogged)
             {
