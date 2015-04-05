@@ -217,7 +217,7 @@ namespace Knife
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_ServerAuth, image);
                             Img_ServerAuth.ToolTip = "You are banned";
                         }));
-                    } 
+                    }
                     if (_serverState == ServerState.NotAuth)
                     {
                         Img_ServerAuth.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
@@ -228,6 +228,17 @@ namespace Knife
                             image.EndInit();
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_ServerAuth, image);
                             Img_ServerAuth.ToolTip = "NotAuth";
+                        }));
+                    } if (_serverState == ServerState.NewUser)
+                    {
+                        Img_ServerAuth.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
+                        {
+                            var image = new BitmapImage();
+                            image.BeginInit();
+                            image.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + "sloading.gif");
+                            image.EndInit();
+                            WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_ServerAuth, image);
+                            Img_ServerAuth.ToolTip = "Wait until you authorize admin";
                         }));
                     }
                 }
@@ -251,11 +262,15 @@ namespace Knife
             Auth,
             NotAuth,
             Authing,
-            Banned
+            Banned,
+            NewUser
         }
         void client_PacketReceived(byte PacketType, string Packet)
         {
-
+            if(PacketType == (byte)ConnMessType.Auth)
+            {
+                states.serverState = (ServerState)Enum.Parse(typeof(ServerState), Packet);
+            }
         }
         void client_Disconnected()
         {
@@ -280,11 +295,9 @@ namespace Knife
                 {
                     SteamAuth();
                 }
-                client.Send((byte)ConnMessType.Auth, accid + "<:>" + ProfileImgLink + "<:>" + MoneyLimit.ToString());
-                states.serverState = ServerState.Authing;
-                while (states.serverState == ServerState.Authing)
+                if (states.clientState == ClientState.Connected && states.steamAuthState == SteamAuthState.Auth && states.serverState == ServerState.NotAuth)
                 {
-                    Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(delegate { }));
+                    ServerAuth();
                 }
             }
             catch
@@ -310,54 +323,77 @@ namespace Knife
         }
         void SteamAuth()
         {
+            DateTime dt = DateTime.Now;
             states.steamAuthState = SteamAuthState.Authing;
             wbload = false;
             Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(delegate
             {
-                wb.Source = new Uri("http://google.com");
-                wb.Source = new Uri("http://steamcommunity.com/market/");
-                while (!wbload)
+                try
                 {
-                    Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(delegate { }));
-                }
-                if (wb.Source.AbsoluteUri == "http://steamcommunity.com/market/" || wb.Source.AbsoluteUri == "https://steamcommunity.com/market/")
-                {
-                    HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
-                    doc.LoadHtml(wb.ExecuteJavascriptWithResult("document.documentElement.outerHTML").ToString());
-                    if (doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").Count() != 0)
+                    wb.Source = new Uri("http://google.com");
+                    wb.Source = new Uri("http://steamcommunity.com/market/");
+                    while (!wbload)
                     {
-                        MoneyLimit = Convert.ToDouble(doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").First().InnerText.Split(' ')[0]);
-                        if (MoneyLimit > 1500)
-                            MoneyLimit = 1500;
-                        accid = doc.DocumentNode.Descendants("span").Where(c => c.Id == "account_pulldown").First().InnerText;
-                        string ProfileLink = doc.DocumentNode.Descendants("img").Where(x => x.Id == "headerUserAvatarIcon").First().ParentNode.GetAttributeValue("href", "");
-                        wb.Source = new Uri("http://google.com");
-                        wb.Source = new Uri(ProfileLink);
-                        wbload = false;
-                        while (!wbload)
+                        Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(delegate{ })); 
+                        if ((DateTime.Now - dt).TotalMilliseconds > 15000)
                         {
-                            Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(delegate { }));
+                            states.steamAuthState = SteamAuthState.NotAuth;
+                            return;
                         }
+                    }
+                    if (wb.Source.AbsoluteUri == "http://steamcommunity.com/market/" || wb.Source.AbsoluteUri == "https://steamcommunity.com/market/")
+                    {
+                        HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
                         doc.LoadHtml(wb.ExecuteJavascriptWithResult("document.documentElement.outerHTML").ToString());
-                        ProfileImgLink = doc.DocumentNode.Descendants("div").Where(x => x.GetAttributeValue("class", "") == "playerAvatar profile_header_size online").First().ChildNodes.Where(x => x.Name == "img").First().GetAttributeValue("src", "");
-                        if (GetCookies())
+                        if (doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").Count() != 0)
                         {
-                            states.steamAuthState = SteamAuthState.Auth;
+                            MoneyLimit = Convert.ToDouble(doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").First().InnerText.Split(' ')[0]);
+                            if (MoneyLimit > 1500)
+                                MoneyLimit = 1500;
+                            accid = doc.DocumentNode.Descendants("span").Where(c => c.Id == "account_pulldown").First().InnerText;
+                            string ProfileLink = doc.DocumentNode.Descendants("img").Where(x => x.Id == "headerUserAvatarIcon").First().ParentNode.GetAttributeValue("href", "");
+                            wb.Source = new Uri("http://google.com");
+                            wb.Source = new Uri(ProfileLink);
+                            wbload = false;
+                            while (!wbload)
+                            {
+                                Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(delegate { }));
+                                if ((DateTime.Now - dt).TotalMilliseconds > 15000)
+                                {
+                                    states.steamAuthState = SteamAuthState.NotAuth;
+                                    return;
+                                }
+                            }
+                            doc.LoadHtml(wb.ExecuteJavascriptWithResult("document.documentElement.outerHTML").ToString());
+                            ProfileImgLink = doc.DocumentNode.Descendants("div").Where(x => x.GetAttributeValue("class", "") == "playerAvatar profile_header_size online").First().ChildNodes.Where(x => x.Name == "img").First().GetAttributeValue("src", "");
+                            if (GetCookies())
+                            {
+                                states.steamAuthState = SteamAuthState.Auth;
 
+                            }
+                            else
+                            {
+                                states.steamAuthState = SteamAuthState.NotAuth;
+                            }
                         }
                         else
                         {
-                            states.steamAuthState = SteamAuthState.NotAuth;
+                            states.steamAuthState = SteamAuthState.NotLogged;
                         }
                     }
-                    else
-                    {
-                        states.steamAuthState = SteamAuthState.NotLogged;
-                    }
+                }
+                catch
+                {
+                    states.steamAuthState = SteamAuthState.NotAuth;
                 }
             })); 
             
 
+        }
+        void ServerAuth()
+        {
+            client.Send((byte)ConnMessType.Auth, accid + "<:>" + ProfileImgLink + "<:>" + MoneyLimit.ToString());
+            states.serverState = ServerState.Authing;
         }
         private void wb_InitializeView(object sender, Awesomium.Core.WebViewEventArgs e)
         {
@@ -435,11 +471,6 @@ namespace Knife
             
 
         }
-
-        void t_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
-        {
-            
-        }
         private void MW_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
 
@@ -491,6 +522,7 @@ namespace Knife
     }
     public enum ConnMessType
     {
-        Auth
+        Auth,
+        Sub
     }
 }
