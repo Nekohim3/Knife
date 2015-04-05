@@ -79,7 +79,7 @@ namespace Knife
                             image.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + "ok.png");
                             image.EndInit();
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_ConnectToServer, image);
-                            Img_SteamAuth.ToolTip = "Connected";
+                            Img_ConnectToServer.ToolTip = "Connected";
                         }));
                     }
                     if (_clientState == ClientState.Connecting)
@@ -91,7 +91,7 @@ namespace Knife
                             image.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + "loading.gif");
                             image.EndInit();
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_ConnectToServer, image);
-                            Img_SteamAuth.ToolTip = "Connecting";
+                            Img_ConnectToServer.ToolTip = "Connecting";
                         }));
                     }
                     if (_clientState == ClientState.Disconnected)
@@ -105,7 +105,7 @@ namespace Knife
                             image.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + "error.png");
                             image.EndInit();
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_ConnectToServer, image);
-                            Img_SteamAuth.ToolTip = "Disconnected";
+                            Img_ConnectToServer.ToolTip = "Disconnected";
                         }));
                     }
                 }
@@ -191,7 +191,7 @@ namespace Knife
                             image.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + "ok.png");
                             image.EndInit();
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_ServerAuth, image);
-                            Img_SteamAuth.ToolTip = "Auth";
+                            Img_ServerAuth.ToolTip = "Auth";
                         }));
                     } 
                     if (_serverState == ServerState.Authing)
@@ -203,7 +203,7 @@ namespace Knife
                             image.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + "loading.gif");
                             image.EndInit();
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_ServerAuth, image);
-                            Img_SteamAuth.ToolTip = "Authing";
+                            Img_ServerAuth.ToolTip = "Authing";
                         }));
                     } 
                     if (_serverState == ServerState.Banned)
@@ -215,7 +215,7 @@ namespace Knife
                             image.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + "banned.png");
                             image.EndInit();
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_ServerAuth, image);
-                            Img_SteamAuth.ToolTip = "You are banned";
+                            Img_ServerAuth.ToolTip = "You are banned";
                         }));
                     } 
                     if (_serverState == ServerState.NotAuth)
@@ -227,7 +227,7 @@ namespace Knife
                             image.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + "error.png");
                             image.EndInit();
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_ServerAuth, image);
-                            Img_SteamAuth.ToolTip = "NotAuth";
+                            Img_ServerAuth.ToolTip = "NotAuth";
                         }));
                     }
                 }
