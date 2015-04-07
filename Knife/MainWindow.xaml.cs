@@ -29,7 +29,7 @@ namespace Knife
         public MainWindow()
         {
             InitializeComponent();
-            states = new States(Img_ConnectToServer, Img_SteamAuth, Img_ServerAuth);
+            states = new States(Img_ConnectToServer, Img_SteamAuth, Img_ServerAuth, Img_Main, ColorGrid, log);
             client.Connected += client_Connected;
             client.Disconnected += client_Disconnected;
             client.PacketReceived += client_PacketReceived;
@@ -39,6 +39,7 @@ namespace Knife
         string ProfileImgLink = "";
         string accid = "";
         string Cookie = "";
+        string sub = "";
         string sessionId = "";
         double MoneyLimit = 0;
         bool setts = false;
@@ -46,19 +47,27 @@ namespace Knife
         bool IsInitRunned = false;
         Point lastwndsize = new Point();
         bool Steam_waitforlog = false;
+
         Nading.Network.Client.clsClient client = new Nading.Network.Client.clsClient();
         string ServerIp = "94.19.181.93";
         string ServerPort = "18346";
+
         public class States
         {
             Image Img_ConnectToServer;
             Image Img_SteamAuth;
             Image Img_ServerAuth;
-            public States(Image img1, Image img2, Image img3)
+            Image Img_Main;
+            Grid ColorGrid;
+            Label Log;
+            public States(Image img1, Image img2, Image img3, Image img4, Grid g, Label log)
             {
                 Img_ConnectToServer = img1;
                 Img_SteamAuth = img2;
                 Img_ServerAuth = img3;
+                Img_Main = img4;
+                ColorGrid = g;
+                Log = log;
             }
 
             private ClientState _clientState;
@@ -70,7 +79,7 @@ namespace Knife
                     _clientState = value;
                     if (_clientState == ClientState.Connected)
                     {
-                        Img_ConnectToServer.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
+                        Img_ConnectToServer.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(delegate
                         {
                             var image = new BitmapImage();
                             image.BeginInit();
@@ -82,7 +91,7 @@ namespace Knife
                     }
                     if (_clientState == ClientState.Connecting)
                     {
-                        Img_ConnectToServer.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
+                        Img_ConnectToServer.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(delegate
                         {
                             var image = new BitmapImage();
                             image.BeginInit();
@@ -96,7 +105,7 @@ namespace Knife
                     {
                         steamAuthState = SteamAuthState.NotAuth;
                         serverState = ServerState.NotAuth;
-                        Img_ConnectToServer.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
+                        Img_ConnectToServer.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(delegate
                         {
                             var image = new BitmapImage();
                             image.BeginInit();
@@ -121,7 +130,7 @@ namespace Knife
                         _steamAuthState = SteamAuthState.NotAuth;
                     if (_steamAuthState == SteamAuthState.Auth)
                     {
-                        Img_SteamAuth.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
+                        Img_SteamAuth.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(delegate
                         {
                             var image = new BitmapImage();
                             image.BeginInit();
@@ -133,7 +142,7 @@ namespace Knife
                     }
                     if (_steamAuthState == SteamAuthState.Authing)
                     {
-                        Img_SteamAuth.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
+                        Img_SteamAuth.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(delegate
                         {
                             var image = new BitmapImage();
                             image.BeginInit();
@@ -145,7 +154,7 @@ namespace Knife
                     }
                     if (_steamAuthState == SteamAuthState.NotAuth)
                     {
-                        Img_SteamAuth.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
+                        Img_SteamAuth.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(delegate
                         {
                             var image = new BitmapImage();
                             image.BeginInit();
@@ -157,7 +166,7 @@ namespace Knife
                     }
                     if (_steamAuthState == SteamAuthState.NotLogged)
                     {
-                        Img_SteamAuth.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
+                        Img_SteamAuth.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(delegate
                         {
                             var image = new BitmapImage();
                             image.BeginInit();
@@ -182,7 +191,7 @@ namespace Knife
                         _serverState = ServerState.NotAuth;
                     if (_serverState == ServerState.Auth)
                     {
-                        Img_ServerAuth.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
+                        Img_ServerAuth.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(delegate
                         {
                             var image = new BitmapImage();
                             image.BeginInit();
@@ -191,10 +200,12 @@ namespace Knife
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_ServerAuth, image);
                             Img_ServerAuth.ToolTip = "Auth";
                         }));
+                        searchState = SearchState.Search;
+
                     } 
                     if (_serverState == ServerState.Authing)
                     {
-                        Img_ServerAuth.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
+                        Img_ServerAuth.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(delegate
                         {
                             var image = new BitmapImage();
                             image.BeginInit();
@@ -206,7 +217,7 @@ namespace Knife
                     } 
                     if (_serverState == ServerState.Banned)
                     {
-                        Img_ServerAuth.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
+                        Img_ServerAuth.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(delegate
                         {
                             var image = new BitmapImage();
                             image.BeginInit();
@@ -218,7 +229,7 @@ namespace Knife
                     }
                     if (_serverState == ServerState.NotAuth)
                     {
-                        Img_ServerAuth.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
+                        Img_ServerAuth.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(delegate
                         {
                             var image = new BitmapImage();
                             image.BeginInit();
@@ -229,7 +240,7 @@ namespace Knife
                         }));
                     } if (_serverState == ServerState.NewUser)
                     {
-                        Img_ServerAuth.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate
+                        Img_ServerAuth.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(delegate
                         {
                             var image = new BitmapImage();
                             image.BeginInit();
@@ -238,6 +249,44 @@ namespace Knife
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_ServerAuth, image);
                             Img_ServerAuth.ToolTip = "Wait until you authorize admin";
                         }));
+                    }
+                }
+            }
+
+            private SearchState _searchState;
+            public SearchState searchState
+            {
+                get { return _searchState; }
+                set
+                {
+                    _searchState = value;
+                    if (_searchState == SearchState.Off)
+                    {
+                        Img_Main.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(delegate
+                        {
+                            var image = new BitmapImage();
+                            image.BeginInit();
+                            image.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + "off.png");
+                            image.EndInit();
+                            WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_Main, image);
+                            Img_Main.ToolTip = "off";
+                        }));
+                        Log.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(delegate
+                        {
+                            Log.Content = "Please allow enough time for all authorizations";
+                        }));
+                    }
+                    if (_searchState == SearchState.Search)
+                    {
+
+                    }
+                    if (_searchState == SearchState.GetKnife)
+                    {
+
+                    }
+                    if (_searchState == SearchState.Buying)
+                    {
+
                     }
                 }
             }
@@ -263,6 +312,14 @@ namespace Knife
             Banned,
             NewUser
         }
+        public enum SearchState
+        {
+            Off,
+            Search,
+            GetKnife, 
+            Buying,
+        }
+
         void client_PacketReceived(byte PacketType, string Packet)
         {
             if(PacketType == (byte)ConnMessType.Auth)
@@ -278,6 +335,7 @@ namespace Knife
         {
             states.clientState = ClientState.Connected;
         }
+
         void Init()
         {
             if (IsInitRunned)
@@ -394,27 +452,6 @@ namespace Knife
             client.Send((byte)ConnMessType.Auth, accid + "<:>" + ProfileImgLink + "<:>" + MoneyLimit.ToString());
             states.serverState = ServerState.Authing;
         }
-        private void wb_InitializeView(object sender, Awesomium.Core.WebViewEventArgs e)
-        {
-            wb.WebSession = Awesomium.Core.WebCore.CreateWebSession(System.Environment.CurrentDirectory, new Awesomium.Core.WebPreferences());
-        }
-
-        private void wb_LoadingFrameComplete(object sender, Awesomium.Core.FrameEventArgs e)
-        {
-            
-            wbload = true;
-            if(Steam_waitforlog)
-            {
-                if (wb.Source.AbsoluteUri == "http://steamcommunity.com/market/" || wb.Source.AbsoluteUri == "https://steamcommunity.com/market/")
-                {
-                    Steam_waitforlog = false;
-                    states.steamAuthState = SteamAuthState.NotAuth;
-                    wb.Visibility = System.Windows.Visibility.Hidden;
-                    Width = lastwndsize.X;
-                    Height = lastwndsize.Y;
-                }
-            }
-        }
         bool GetCookies()
         {
             if (!File.Exists("Cookies"))
@@ -455,11 +492,36 @@ namespace Knife
 
             }
         }
+
+
+
+        private void wb_InitializeView(object sender, Awesomium.Core.WebViewEventArgs e)
+        {
+            wb.WebSession = Awesomium.Core.WebCore.CreateWebSession(System.Environment.CurrentDirectory, new Awesomium.Core.WebPreferences());
+        }
+        private void wb_LoadingFrameComplete(object sender, Awesomium.Core.FrameEventArgs e)
+        {
+            
+            wbload = true;
+            if(Steam_waitforlog)
+            {
+                if (wb.Source.AbsoluteUri == "http://steamcommunity.com/market/" || wb.Source.AbsoluteUri == "https://steamcommunity.com/market/")
+                {
+                    Steam_waitforlog = false;
+                    states.steamAuthState = SteamAuthState.NotAuth;
+                    wb.Visibility = System.Windows.Visibility.Hidden;
+                    Width = lastwndsize.X;
+                    Height = lastwndsize.Y;
+                }
+            }
+        }
+
         private void MetroWindow_Loaded(object sender, RoutedEventArgs e)
         {
             states.clientState = ClientState.Disconnected;
             states.steamAuthState = SteamAuthState.NotAuth;
             states.serverState = ServerState.NotAuth;
+            states.searchState = SearchState.Off;
             sett.Margin = new Thickness(0, 0, -sett.Width, 30);
             System.Timers.Timer CheckAllTimer = new System.Timers.Timer(1000);
             CheckAllTimer.Elapsed += (ss, ee) =>
@@ -506,7 +568,6 @@ namespace Knife
                 sett.BeginAnimation(MarginProperty, ta);
             }
         }
-
         private void Img_SteamAuth_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             if (states.steamAuthState == SteamAuthState.NotLogged)
@@ -526,3 +587,13 @@ namespace Knife
         Sub
     }
 }
+//search ------- search sucsessfull--
+//           |-- search error
+//
+//get knife ---- get sucsessfull--
+//           |-- lot sold
+//           |-- get error
+//           |-- price err
+//
+//buying ------- buy succ
+//           |-- buy err
