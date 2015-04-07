@@ -29,7 +29,7 @@ namespace Knife
         public MainWindow()
         {
             InitializeComponent();
-            states = new States(Img_ConnectToServer, Img_SteamAuth, Img_ServerAuth, Img_Main, ColorGrid, log);
+            states = new States(Img_ConnectToServer, Img_SteamAuth, Img_ServerAuth, Img_Main, ColorGrid, log, L_ConnectToServer, L_SteamAuth, L_ServerAuth);
             client.Connected += client_Connected;
             client.Disconnected += client_Disconnected;
             client.PacketReceived += client_PacketReceived;
@@ -57,10 +57,13 @@ namespace Knife
             Image Img_ConnectToServer;
             Image Img_SteamAuth;
             Image Img_ServerAuth;
-            Image Img_Main;
+            Image Img_Main; 
+            Label L_ConnectToServer;
+            Label L_SteamAuth;
+            Label L_ServerAuth;
             Grid ColorGrid;
             Label Log;
-            public States(Image img1, Image img2, Image img3, Image img4, Grid g, Label log)
+            public States(Image img1, Image img2, Image img3, Image img4, Grid g, Label log, Label l1, Label l2, Label l3)
             {
                 Img_ConnectToServer = img1;
                 Img_SteamAuth = img2;
@@ -68,6 +71,9 @@ namespace Knife
                 Img_Main = img4;
                 ColorGrid = g;
                 Log = log;
+                L_ConnectToServer = l1;
+                L_SteamAuth = l2;
+                L_ServerAuth = l3;
             }
 
             private ClientState _clientState;
@@ -87,6 +93,10 @@ namespace Knife
                             image.EndInit();
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_ConnectToServer, image);
                             Img_ConnectToServer.ToolTip = "Connected";
+                            Log.Content = "Connected to main server";
+                            Img_ToPanel(Img_ConnectToServer,0, L_ConnectToServer);
+                            Img_SteamAuth.Visibility = Visibility.Visible;
+                            
                         }));
                     }
                     if (_clientState == ClientState.Connecting)
@@ -99,6 +109,9 @@ namespace Knife
                             image.EndInit();
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_ConnectToServer, image);
                             Img_ConnectToServer.ToolTip = "Connecting";
+                            Log.Content = "Connecting to main server";
+                            Img_ToCenter(Img_ConnectToServer, L_ConnectToServer);
+                            Img_SteamAuth.Visibility = Visibility.Hidden;
                         }));
                     }
                     if (_clientState == ClientState.Disconnected)
@@ -113,6 +126,9 @@ namespace Knife
                             image.EndInit();
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_ConnectToServer, image);
                             Img_ConnectToServer.ToolTip = "Disconnected";
+                            Log.Content = "Disconnected from main server";
+                            Img_ToCenter(Img_ConnectToServer, L_ConnectToServer);
+                            Img_SteamAuth.Visibility = Visibility.Hidden;
                         }));
                     }
                 }
@@ -125,9 +141,13 @@ namespace Knife
                 set
                 {
                     if (_clientState == ClientState.Connected)
+                    {
                         _steamAuthState = value;
+                    }
                     else
+                    {
                         _steamAuthState = SteamAuthState.NotAuth;
+                    }
                     if (_steamAuthState == SteamAuthState.Auth)
                     {
                         Img_SteamAuth.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(delegate
@@ -138,6 +158,9 @@ namespace Knife
                             image.EndInit();
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_SteamAuth, image);
                             Img_SteamAuth.ToolTip = "Auth";
+                            Log.Content = "Logged in Steam";
+                            Img_ToPanel(Img_SteamAuth, 1, L_SteamAuth);
+                            Img_ServerAuth.Visibility = Visibility.Visible;
                         }));
                     }
                     if (_steamAuthState == SteamAuthState.Authing)
@@ -150,6 +173,9 @@ namespace Knife
                             image.EndInit();
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_SteamAuth, image);
                             Img_SteamAuth.ToolTip = "Authing";
+                            Log.Content = "Log in Steam";
+                            Img_ToCenter(Img_SteamAuth, L_SteamAuth);
+                            Img_ServerAuth.Visibility = Visibility.Hidden;
                         }));
                     }
                     if (_steamAuthState == SteamAuthState.NotAuth)
@@ -162,6 +188,9 @@ namespace Knife
                             image.EndInit();
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_SteamAuth, image);
                             Img_SteamAuth.ToolTip = "NotAuth";
+                            Log.Content = "Not logged in Steam";
+                            Img_ToCenter(Img_SteamAuth, L_SteamAuth);
+                            Img_ServerAuth.Visibility = Visibility.Hidden;
                         }));
                     }
                     if (_steamAuthState == SteamAuthState.NotLogged)
@@ -174,6 +203,9 @@ namespace Knife
                             image.EndInit();
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_SteamAuth, image);
                             Img_SteamAuth.ToolTip = "You are not logged in steam. Please click here to login";
+                            Log.Content = "You are not logged in steam. Please click to image to login";
+                            Img_ToCenter(Img_SteamAuth, L_SteamAuth);
+                            Img_ServerAuth.Visibility = Visibility.Hidden;
                         }));
                     }
                 }
@@ -199,6 +231,10 @@ namespace Knife
                             image.EndInit();
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_ServerAuth, image);
                             Img_ServerAuth.ToolTip = "Auth";
+                            //Log.Content = "Logged in main server";
+                            Log.Content = "Coming soon...";
+                            Img_ToPanel(Img_ServerAuth, 2, L_ServerAuth);
+                            Img_Main.Visibility = Visibility.Visible;
                         }));
                         searchState = SearchState.Search;
 
@@ -213,6 +249,9 @@ namespace Knife
                             image.EndInit();
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_ServerAuth, image);
                             Img_ServerAuth.ToolTip = "Authing";
+                            Log.Content = "Log in main server";
+                            Img_ToCenter(Img_ServerAuth, L_ServerAuth);
+                            Img_Main.Visibility = Visibility.Hidden;
                         }));
                     } 
                     if (_serverState == ServerState.Banned)
@@ -225,6 +264,9 @@ namespace Knife
                             image.EndInit();
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_ServerAuth, image);
                             Img_ServerAuth.ToolTip = "You are banned";
+                            Log.Content = "You are banned";
+                            Img_ToCenter(Img_ServerAuth, L_ServerAuth);
+                            Img_Main.Visibility = Visibility.Hidden;
                         }));
                     }
                     if (_serverState == ServerState.NotAuth)
@@ -237,8 +279,12 @@ namespace Knife
                             image.EndInit();
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_ServerAuth, image);
                             Img_ServerAuth.ToolTip = "NotAuth";
+                            Log.Content = "Not logged in main server";
+                            Img_ToCenter(Img_ServerAuth, L_ServerAuth);
+                            Img_Main.Visibility = Visibility.Hidden;
                         }));
-                    } if (_serverState == ServerState.NewUser)
+                    } 
+                    if (_serverState == ServerState.NewUser)
                     {
                         Img_ServerAuth.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(delegate
                         {
@@ -248,6 +294,9 @@ namespace Knife
                             image.EndInit();
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_ServerAuth, image);
                             Img_ServerAuth.ToolTip = "Wait until you authorize admin";
+                            Log.Content = "Wait until you authorize admin";
+                            Img_ToCenter(Img_ServerAuth, L_ServerAuth);
+                            Img_Main.Visibility = Visibility.Hidden;
                         }));
                     }
                 }
@@ -266,7 +315,7 @@ namespace Knife
                         {
                             var image = new BitmapImage();
                             image.BeginInit();
-                            image.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + "off.png");
+                            image.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + "sloading.gif");
                             image.EndInit();
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Img_Main, image);
                             Img_Main.ToolTip = "off";
@@ -289,6 +338,72 @@ namespace Knife
 
                     }
                 }
+            }
+
+            void Img_ToCenter(Image img, Label l)
+            {
+                ThicknessAnimation ta = new ThicknessAnimation();
+                ta.From = img.Margin;
+                ta.To = new Thickness(80, 10, 0, -1);
+                ta.Duration = TimeSpan.FromMilliseconds(500);
+                ta.EasingFunction = new PowerEase()
+                {
+                    EasingMode = EasingMode.EaseOut
+                };
+
+                DoubleAnimation da = new DoubleAnimation();
+                da.From = img.Width;
+                da.To = 350;
+                da.Duration = TimeSpan.FromMilliseconds(500);
+                da.EasingFunction = new PowerEase()
+                {
+                    EasingMode = EasingMode.EaseOut
+                };
+                img.BeginAnimation(MarginProperty, ta);
+                img.BeginAnimation(WidthProperty, da);
+                img.BeginAnimation(HeightProperty, da);
+
+                DoubleAnimation dal = new DoubleAnimation();
+                dal.From = l.Opacity;
+                dal.To = 0;
+                dal.Duration = TimeSpan.FromMilliseconds(500);
+                dal.EasingFunction = new PowerEase()
+                {
+                    EasingMode = EasingMode.EaseOut
+                };
+                l.BeginAnimation(OpacityProperty, dal);
+            }
+            void Img_ToPanel(Image img, int n, Label l)
+            {
+                ThicknessAnimation ta = new ThicknessAnimation();
+                ta.From = img.Margin;
+                ta.To = new Thickness(515, 120*n, 0, 0);
+                ta.Duration = TimeSpan.FromMilliseconds(500);
+                ta.EasingFunction = new PowerEase()
+                {
+                    EasingMode = EasingMode.EaseOut
+                };
+                DoubleAnimation da = new DoubleAnimation();
+                da.From = img.Width;
+                da.To = 100;
+                da.Duration = TimeSpan.FromMilliseconds(500);
+                da.EasingFunction = new PowerEase()
+                {
+                    EasingMode = EasingMode.EaseOut
+                };
+                img.BeginAnimation(MarginProperty, ta);
+                img.BeginAnimation(WidthProperty, da);
+                img.BeginAnimation(HeightProperty, da);
+
+                DoubleAnimation dal = new DoubleAnimation();
+                dal.From = l.Opacity;
+                dal.To = 1;
+                dal.Duration = TimeSpan.FromMilliseconds(500);
+                dal.EasingFunction = new PowerEase()
+                {
+                    EasingMode = EasingMode.EaseOut
+                };
+                l.BeginAnimation(OpacityProperty, dal);
             }
         }
         public enum ClientState
@@ -400,14 +515,14 @@ namespace Knife
                     if (wb.Source.AbsoluteUri == "http://steamcommunity.com/market/" || wb.Source.AbsoluteUri == "https://steamcommunity.com/market/")
                     {
                         HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
-                        doc.LoadHtml(wb.ExecuteJavascriptWithResult("document.documentElement.outerHTML").ToString()); log.Content = "345";
+                        doc.LoadHtml(wb.ExecuteJavascriptWithResult("document.documentElement.outerHTML").ToString()); 
                         if (doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").Count() != 0)
                         {
-                            MoneyLimit = Convert.ToDouble(doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").First().InnerText.Split(' ')[0]); log.Content = "348";
+                            MoneyLimit = Convert.ToDouble(doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").First().InnerText.Split(' ')[0]);
                             if (MoneyLimit > 1500)
                                 MoneyLimit = 1500;
-                            accid = doc.DocumentNode.Descendants("span").Where(c => c.Id == "account_pulldown").First().InnerText; log.Content = "351";
-                            string ProfileLink = doc.DocumentNode.Descendants("img").Where(x => x.Id == "headerUserAvatarIcon").First().ParentNode.GetAttributeValue("href", ""); log.Content = "352";
+                            accid = doc.DocumentNode.Descendants("span").Where(c => c.Id == "account_pulldown").First().InnerText; 
+                            string ProfileLink = doc.DocumentNode.Descendants("img").Where(x => x.Id == "headerUserAvatarIcon").First().ParentNode.GetAttributeValue("href", ""); 
                             wb.Source = new Uri("http://google.com");
                             wb.Source = new Uri(ProfileLink);
                             wbload = false;
@@ -420,8 +535,8 @@ namespace Knife
                                     return;
                                 }
                             }
-                            doc.LoadHtml(wb.ExecuteJavascriptWithResult("document.documentElement.outerHTML").ToString()); log.Content = "365";
-                            ProfileImgLink = doc.DocumentNode.Descendants("div").Where(x => x.GetAttributeValue("class", "").IndexOf("playerAvatar profile_header_size") != -1).First().ChildNodes.Where(x => x.Name == "img").First().GetAttributeValue("src", ""); log.Content = "366";
+                            doc.LoadHtml(wb.ExecuteJavascriptWithResult("document.documentElement.outerHTML").ToString()); 
+                            ProfileImgLink = doc.DocumentNode.Descendants("div").Where(x => x.GetAttributeValue("class", "").IndexOf("playerAvatar profile_header_size") != -1).First().ChildNodes.Where(x => x.Name == "img").First().GetAttributeValue("src", "");
                             if (GetCookies())
                             {
                                 states.steamAuthState = SteamAuthState.Auth;
