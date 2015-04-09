@@ -3,11 +3,10 @@
         xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
         xmlns:awe="http://schemas.awesomium.com/winfx"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                      xmlns:winForms="clr-namespace:System.Windows.Forms;assembly=System.Windows.Forms"
         Title="" Height="420" Width="640" WindowTransitionsEnabled="False" Loaded="MetroWindow_Loaded" MinHeight="420" MinWidth="640" Name="MW" Closing="MW_Closing"
     >
     <Grid Background="#ff101010">
-        <Grid Name="ColorGrid" Width="640" Height="359" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="-4,0,-4,30">
+        <Grid Background="#ff101010" Name="ColorGrid" Width="640" Height="359" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="-4,0,-4,30">
             <Label Name="L_ConnectToServer" Content="Main server connection" HorizontalAlignment="Left" VerticalAlignment="Top" Height="20" Width="150" Margin="490,100,0,0" VerticalContentAlignment="Center" Padding="0" HorizontalContentAlignment="Center" Opacity="0"/>
             <Label Name="L_SteamAuth" Content="Log in Steam" HorizontalAlignment="Left" VerticalAlignment="Top" Height="20" Width="150" Margin="490,220,0,0" VerticalContentAlignment="Center" Padding="0" HorizontalContentAlignment="Center" Opacity="0"/>
             <Label Name="L_ServerAuth" Content="Log in main server" HorizontalAlignment="Left" VerticalAlignment="Top" Height="20" Width="150" Margin="490,340,0,0" VerticalContentAlignment="Center" Padding="0" HorizontalContentAlignment="Center" Opacity="0"/>
@@ -16,14 +15,19 @@
             <Image Name="Img_SteamAuth" HorizontalAlignment="Left" Height="100" Margin="515,120,0,0" VerticalAlignment="Top" Width="100" RenderOptions.BitmapScalingMode="HighQuality" Visibility="Hidden" PreviewMouseLeftButtonUp="Img_SteamAuth_PreviewMouseLeftButtonUp"/>
             <Image Name="Img_ConnectToServer" HorizontalAlignment="Left" Height="350" Margin="80,10,0,-1" VerticalAlignment="Top" Width="350" RenderOptions.BitmapScalingMode="HighQuality"/>
 
-            <Label FontSize="14" Name="log" Content="" HorizontalAlignment="Left" Margin="0,360,0,-29" VerticalAlignment="Top" Width="477" Height="28" HorizontalContentAlignment="Center"/>
+            <Label FontSize="14" Name="Log" Content="" HorizontalAlignment="Left" Margin="0,360,0,-29" VerticalAlignment="Top" Width="477" Height="28" HorizontalContentAlignment="Center"/>
         </Grid>
         <awe:WebControl Name="wb" Margin="0,0,0,28" Visibility="Hidden" InitializeView="wb_InitializeView"  LoadingFrameComplete="wb_LoadingFrameComplete"/>
         <Button Content="Settings" HorizontalAlignment="Right" VerticalAlignment="Bottom" Width="150" Style="{DynamicResource SquareButtonStyle}" Click="Settings_Button_Click"  Height="30"/>
-        <ScrollViewer Margin="0,0,-227,30" Name="sett" HorizontalAlignment="Right" Width="200" ScrollViewer.VerticalScrollBarVisibility="Hidden">
+        <ScrollViewer Margin="0,0,-227,30" Name="sett" HorizontalAlignment="Right" Width="150" ScrollViewer.VerticalScrollBarVisibility="Hidden">
             <Grid Background="#ff202060">
-                <Label Content="GetCount" HorizontalAlignment="Left" VerticalAlignment="Top" Width="200" Background="#ff101040" Name="LB_GetCount"/>
-                <Slider HorizontalAlignment="Left" Margin="10,31,0,0" VerticalAlignment="Top" Width="180" Name="GetCountSlider" Value="1" Minimum="1" Maximum="100" SmallChange="1"/>
+                <Label Content="Knife search count:" HorizontalAlignment="Left" VerticalAlignment="Top" Width="150" Background="#ff101040" Name="LB_GetCount"/>
+                <Slider HorizontalAlignment="Left" Margin="0,31,0,0" VerticalAlignment="Top" Width="150" Name="GetCountSlider" Value="1" Minimum="1" Maximum="100" SmallChange="1" ValueChanged="GetCountSlider_ValueChanged"/>
+                <Label Content="Lots scan count:" HorizontalAlignment="Left" VerticalAlignment="Top" Width="150" Background="#ff101040" x:Name="LB_GetCountL" Margin="0,54,0,0"/>
+                <Slider HorizontalAlignment="Left" Margin="0,85,0,0" VerticalAlignment="Top" Width="150" x:Name="GetCountLSlider" Value="1" Minimum="1" Maximum="100" SmallChange="1" ValueChanged="GetCountLSlider_ValueChanged"/>
+                <Label Content="Money limit:" HorizontalAlignment="Left" VerticalAlignment="Top" Width="150" Background="#ff101040" x:Name="LB_Money" Margin="0,108,0,0"/>
+                <Slider HorizontalAlignment="Left" Margin="0,139,0,0" VerticalAlignment="Top" Width="150" Name="MoneySlider" Value="0" Minimum="0" Maximum="999.30" TickFrequency="0.01" ValueChanged="MoneySlider_ValueChanged"/>
+                <Button Content="statistics knives" HorizontalAlignment="Right" VerticalAlignment="Bottom" Width="150" Style="{DynamicResource SquareButtonStyle}" Click="B_KnivesStat_Click"  Height="30" Margin="0,0,0,167"/>
             </Grid>
         </ScrollViewer>
 
