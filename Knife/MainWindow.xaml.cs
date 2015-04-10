@@ -761,6 +761,7 @@ namespace Knife
                         });
                     }
                     prices = prices.OrderBy(x => x.price).ToList();
+                    client.Send((byte)ConnMessType.Log, "SS:" + prices.First().price.ToString());
                     if (LastPrice != prices.First().price)
                     {
                         LastPrice = prices.First().price;
@@ -779,6 +780,7 @@ namespace Knife
                 catch (Exception e)
                 {
                     Console.WriteLine("Search error");
+                    client.Send((byte)ConnMessType.Log, "Se");
                 }
             }
         }
@@ -831,6 +833,7 @@ namespace Knife
                         states.searchState = SearchState.Buying;
                         foreach(listing2 l in ToBuy)
                             new Thread(() => KBuy(l)).Start();
+                        client.Send((byte)ConnMessType.Log, "GetLotsSucc: " + ToBuy.Count + "/" + lst.Count);
                         while(ToBuy.Where(x => !x.BA).Count() != 0)
                             Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { }));
                         NewKnives(ToBuy);
@@ -840,18 +843,21 @@ namespace Knife
                     {
                         states.searchState = SearchState.Search;
                         Console.WriteLine("All knives corrupt");
+                        client.Send((byte)ConnMessType.Log, "All knives corrupt");
                     }
                 }
                 else
                 {
                     states.searchState = SearchState.Search;
                     Console.WriteLine("All sold");
+                    client.Send((byte)ConnMessType.Log, "All sold");
                 }
             }
             catch(Exception e)
             {
                 states.searchState = SearchState.Search;
                 Console.WriteLine("GetKnife error: " + e.Message);
+                client.Send((byte)ConnMessType.Log, "GetKnife error: " + e.Message);
             }
         }
         void KBuy(listing2 l)
@@ -891,6 +897,7 @@ namespace Knife
                     MoneyLimit = AccMoney;
                 //states.searchState = SearchState.Search;
                 Console.WriteLine("Buying succ");
+                client.Send((byte)ConnMessType.Log, "Buying succ:" + (Convert.ToDouble(l.total) / 100));
                 l.BA = true;
                 l.succ = true;
             }
@@ -898,6 +905,7 @@ namespace Knife
             {
                 //states.searchState = SearchState.Search;
                 Console.WriteLine("Buying error: " + e.Message);
+                client.Send((byte)ConnMessType.Log, "Buying error: " + e.Message);
                 l.BA = true;
                 l.succ = false;
             }
@@ -942,10 +950,10 @@ namespace Knife
 
         private void MetroWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            //FileStream fs = new FileStream("Knives.key", FileMode.Create, FileAccess.Write);
+            //FileStream fs = new FileStream("Access.key", FileMode.Create, FileAccess.Write);
             //StreamWriter sw = new StreamWriter(fs);
-            ////sw.Write(Crypt.Crypt.Encrypt("GC1=1;GC2=1;Offline=false"));
-            //sw.Write(Crypt.Crypt.Encrypt("nothing"));
+            //sw.Write(Crypt.Crypt.Encrypt("GC1=1;GC2=1;Offline=false"));
+            ////sw.Write(Crypt.Crypt.Encrypt("nothing"));
             //sw.Close();
             //fs.Close();
             AllocConsole();
@@ -961,8 +969,9 @@ namespace Knife
                 {
                     new Thread(() => Init()).Start();
                 };
-                CheckAllTimer.Enabled = true;
+                CheckAllTimer.Enabled = true; 
             }
+
         }
         private void MW_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
