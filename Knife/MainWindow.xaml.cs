@@ -652,11 +652,7 @@ namespace Knife
                 try
                 {
                     NClient.Send((byte)ConnMessType.CAct, SearchState.Search.ToString());
-                    string sstr = "";
-                    if (!test)
-                        sstr = "http://steamcommunity.com/market/search/render/?query=&start=0&count=" + GetCount1 + "&search_descriptions=0&sort_column=price&sort_dir=asc&appid=730&category_730_Type%5B%5D=tag_CSGO_Type_Knife&l=russian";
-                    else
-                        sstr = "http://steamcommunity.com/market/search/render/?query=&start=0&count=1&search_descriptions=0&sort_column=price&sort_dir=asc&appid=730&l=russian";
+                    string sstr = "http://steamcommunity.com/market/search/render/?query=&start=0&count=" + GetCount1 + "&search_descriptions=0&sort_column=price&sort_dir=asc&appid=730&category_730_Type%5B%5D=tag_CSGO_Type_Knife&l=russian";
                         //HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create("http://steamcommunity.com/market/search/render/?query=&start=0&count=" + GetCount1 + "&search_descriptions=0&sort_column=price&sort_dir=asc&appid=730&category_730_Type%5B%5D=tag_CSGO_Type_Knife&l=russian");
                     HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create(sstr);
                     //HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create("http://steamcommunity.com/market/search/render/?query=&start=0&count=1&search_descriptions=0&sort_column=price&sort_dir=asc&appid=730&l=russian");
@@ -1138,13 +1134,9 @@ namespace Knife
             public string sender { get; set; }
             public bool succ { get; set; }
         }
-        bool test = true;
         private void Button_Click1(object sender, RoutedEventArgs e)
         {
-            if (test)
-                test = false;
-            else
-                test = true;
+
         }
         private void Button_Click(object sender, RoutedEventArgs e)
         {
