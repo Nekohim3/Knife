@@ -21,6 +21,7 @@ using System.Runtime.InteropServices;
 using System.Windows.Threading;
 using System.Net;
 using Newtonsoft.Json;
+using Lidgren.Network;
 namespace Knife
 {
     /// <summary>
@@ -34,12 +35,12 @@ namespace Knife
         public MainWindow()
         {
             InitializeComponent();
-            states = new States(this);//Img_ConnectToServer, Img_SteamAuth, Img_ServerAuth, Img_Main, ColorGrid, log, L_ConnectToServer, L_SteamAuth, L_ServerAuth,
-            client.Connected += client_Connected;
-            client.Disconnected += client_Disconnected;
-            client.PacketReceived += client_PacketReceived;
-
+            states = new States(this);
+            NClient.Connected += NClient_Connected;
+            NClient.Disconnected += NClient_Disconnected;
+            NClient.Received += NClient_Received;
         }
+
         States states;
         string ProfileImgLink = "";
         string accid = "";
@@ -51,6 +52,7 @@ namespace Knife
         string subc = "";
         string subs = "";
 
+        bool Alive = true;
         double MoneyLimit = 0;
         double AccMoney = 0;
         double LastPrice = 0;
@@ -63,75 +65,17 @@ namespace Knife
         int GetCount2 = 1;
 
         List<SKnife> KnivesStats = new List<SKnife>();
-
-        Nading.Network.Client.clsClient client = new Nading.Network.Client.clsClient();
+        List<SKnife> KnivesStats1 = new List<SKnife>();
         string ServerIp = "94.19.181.93";
-        string ServerPort = "18346";
+        int ServerPort = 18346;
 
         public class States
         {
+            public bool newknife = false;
             MainWindow MainW;
             public States( MainWindow mw)
             {
                 MainW = mw;
-            }
-            private ClientState _clientState;
-            public ClientState clientState
-            {
-                get { return _clientState; }
-                set
-                {
-                    _clientState = value;
-                    if (_clientState == ClientState.Connected)
-                    {
-                        MainW.Img_ConnectToServer.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(() =>
-                        {
-                            var image = new BitmapImage();
-                            image.BeginInit();
-                            image.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + "ok.png");
-                            image.EndInit();
-                            WpfAnimatedGif.ImageBehavior.SetAnimatedSource(MainW.Img_ConnectToServer, image);
-                            MainW.Img_ConnectToServer.ToolTip = "Connected";
-                            MainW.Log.Content = "Connected to main server";
-                            Img_ToPanel(MainW.Img_ConnectToServer, 0, MainW.L_ConnectToServer);
-                            MainW.Img_SteamAuth.Visibility = Visibility.Visible;
-                            
-                        }));
-                    }
-                    if (_clientState == ClientState.Connecting)
-                    {
-                        MainW.Img_ConnectToServer.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(() =>
-                        {
-                            var image = new BitmapImage();
-                            image.BeginInit();
-                            image.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + "loading.gif");
-                            image.EndInit();
-                            WpfAnimatedGif.ImageBehavior.SetAnimatedSource(MainW.Img_ConnectToServer, image);
-                            MainW.Img_ConnectToServer.ToolTip = "Connecting";
-                            MainW.Log.Content = "Connecting to main server";
-                            Img_ToCenter(MainW.Img_ConnectToServer, MainW.L_ConnectToServer);
-                            MainW.Img_SteamAuth.Visibility = Visibility.Hidden;
-                        }));
-                    }
-                    if (_clientState == ClientState.Disconnected)
-                    {
-                        steamAuthState = SteamAuthState.NotAuth;
-                        serverState = ServerState.NotAuth;
-                        searchState = SearchState.Off;
-                        MainW.Img_ConnectToServer.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(() =>
-                        {
-                            var image = new BitmapImage();
-                            image.BeginInit();
-                            image.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + "error.png");
-                            image.EndInit();
-                            WpfAnimatedGif.ImageBehavior.SetAnimatedSource(MainW.Img_ConnectToServer, image);
-                            MainW.Img_ConnectToServer.ToolTip = "Disconnected";
-                            MainW.Log.Content = "Disconnected from main server";
-                            Img_ToCenter(MainW.Img_ConnectToServer, MainW.L_ConnectToServer);
-                            MainW.Img_SteamAuth.Visibility = Visibility.Hidden;
-                        }));
-                    }
-                }
             }
 
             private SteamAuthState _steamAuthState;
@@ -140,14 +84,7 @@ namespace Knife
                 get { return _steamAuthState; }
                 set
                 {
-                    if (_clientState == ClientState.Connected)
-                    {
-                        _steamAuthState = value;
-                    }
-                    else
-                    {
-                        _steamAuthState = SteamAuthState.NotAuth;
-                    }
+                    _steamAuthState = value;
                     if (_steamAuthState == SteamAuthState.Auth)
                     {
                         MainW.Img_SteamAuth.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(() =>
@@ -159,7 +96,7 @@ namespace Knife
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(MainW.Img_SteamAuth, image);
                             MainW.Img_SteamAuth.ToolTip = "Auth";
                             MainW.Log.Content = "Logged in Steam";
-                            Img_ToPanel(MainW.Img_SteamAuth, 1, MainW.L_SteamAuth);
+                            Img_ToPanel(MainW.Img_SteamAuth, 0, MainW.L_SteamAuth);
                             MainW.Img_ServerAuth.Visibility = Visibility.Visible;
                         }));
                     }
@@ -217,7 +154,7 @@ namespace Knife
                 get { return _serverState; }
                 set
                 {
-                    if (clientState == ClientState.Connected && steamAuthState == SteamAuthState.Auth)
+                    if (steamAuthState == SteamAuthState.Auth)
                         _serverState = value;
                     else
                         _serverState = ServerState.NotAuth;
@@ -231,8 +168,7 @@ namespace Knife
                             image.EndInit();
                             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(MainW.Img_ServerAuth, image);
                             MainW.Img_ServerAuth.ToolTip = "Auth";
-                            //MainW.Log.Content = "Coming soon...";
-                            Img_ToPanel(MainW.Img_ServerAuth, 2, MainW.L_ServerAuth);
+                            Img_ToPanel(MainW.Img_ServerAuth, 1, MainW.L_ServerAuth);
                             MainW.Img_Main.Visibility = Visibility.Visible;
 
                             DoubleAnimation dal = new DoubleAnimation();
@@ -326,6 +262,7 @@ namespace Knife
                         return;
                     SearchState old = _searchState;
                     _searchState = value;
+
                     if (_searchState == SearchState.Off)
                     {
                         MainW.Img_Main.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(() =>
@@ -346,10 +283,8 @@ namespace Knife
                                 EasingMode = EasingMode.EaseOut
                             };
                             MainW.ColorGrid.Background.BeginAnimation(SolidColorBrush.ColorProperty, ca);
-
+                            if(serverState == ServerState.Auth)
                             MainW.Log.Content = "Off";
-                            if(clientState == ClientState.Connected)
-                                MainW.client.Send((byte)ConnMessType.CAct, SearchState.Off.ToString());
                         }));
                     }
                     if (_searchState == SearchState.Search)
@@ -368,15 +303,16 @@ namespace Knife
 
                             ColorAnimation ca = new ColorAnimation();
                             ca.From = ((SolidColorBrush)MainW.ColorGrid.Background).Color;
-                            ca.To = Color.FromArgb(255, 16, 16, 16);
+                            if (!newknife)
+                                ca.To = Color.FromArgb(255, 16, 16, 16);
+                            else
+                                ca.To = Color.FromArgb(127, 16, 255, 16);
                             ca.Duration = TimeSpan.FromMilliseconds(500);
                             ca.EasingFunction = new PowerEase()
                             {
                                 EasingMode = EasingMode.EaseOut
                             };
                             MainW.ColorGrid.Background.BeginAnimation(SolidColorBrush.ColorProperty, ca);
-                            if (clientState == ClientState.Connected)
-                                MainW.client.Send((byte)ConnMessType.CAct, SearchState.Search.ToString());
                         }));
                     }
                     if (_searchState == SearchState.GetKnife)
@@ -400,8 +336,6 @@ namespace Knife
                                 EasingMode = EasingMode.EaseOut
                             };
                             MainW.ColorGrid.Background.BeginAnimation(SolidColorBrush.ColorProperty, ca);
-                            if (clientState == ClientState.Connected)
-                                MainW.client.Send((byte)ConnMessType.CAct, SearchState.GetKnife.ToString());
                         }));
                     }
                     if (_searchState == SearchState.Buying)
@@ -425,8 +359,6 @@ namespace Knife
                                 EasingMode = EasingMode.EaseOut
                             };
                             MainW.ColorGrid.Background.BeginAnimation(SolidColorBrush.ColorProperty, ca);
-                            if (clientState == ClientState.Connected)
-                                MainW.client.Send((byte)ConnMessType.CAct, SearchState.Buying.ToString());
                         }));
                     }
                 }
@@ -436,7 +368,7 @@ namespace Knife
             {
                 ThicknessAnimation ta = new ThicknessAnimation();
                 ta.From = img.Margin;
-                ta.To = new Thickness(80, 10, 0, -1);
+                ta.To = new Thickness(60, 0, 0, 0);
                 ta.Duration = TimeSpan.FromMilliseconds(500);
                 ta.EasingFunction = new PowerEase()
                 {
@@ -445,7 +377,7 @@ namespace Knife
 
                 DoubleAnimation da = new DoubleAnimation();
                 da.From = img.Width;
-                da.To = 350;
+                da.To = 360;
                 da.Duration = TimeSpan.FromMilliseconds(500);
                 da.EasingFunction = new PowerEase()
                 {
@@ -469,7 +401,7 @@ namespace Knife
             {
                 ThicknessAnimation ta = new ThicknessAnimation();
                 ta.From = img.Margin;
-                ta.To = new Thickness(515, 120*n, 0, 0);
+                ta.To = new Thickness(480, 180*n, 0, 0);
                 ta.Duration = TimeSpan.FromMilliseconds(500);
                 ta.EasingFunction = new PowerEase()
                 {
@@ -477,7 +409,7 @@ namespace Knife
                 };
                 DoubleAnimation da = new DoubleAnimation();
                 da.From = img.Width;
-                da.To = 100;
+                da.To = 160;
                 da.Duration = TimeSpan.FromMilliseconds(500);
                 da.EasingFunction = new PowerEase()
                 {
@@ -498,12 +430,6 @@ namespace Knife
                 l.BeginAnimation(OpacityProperty, dal);
             }
         }
-        public enum ClientState
-        {
-            Disconnected,
-            Connecting,
-            Connected
-        }
         public enum SteamAuthState
         {
             Auth,
@@ -517,28 +443,33 @@ namespace Knife
             NotAuth,
             Authing,
             Banned,
-            NewUser
+            NewUser,
+            Deny
         }
         public enum SearchState
         {
             Off,
             Search,
             GetKnife, 
-            Buying,
+            Buying
         }
 
-        void client_PacketReceived(byte PacketType, string Packet)
+        void NClient_Received(byte MType, string Mess)
         {
-            if(PacketType == (byte)ConnMessType.Auth)
+            if (MType == (byte)ConnMessType.Alive)
             {
-                states.serverState = (ServerState)Enum.Parse(typeof(ServerState), Packet);
+                Alive = true;
             }
-            if(PacketType == (byte)ConnMessType.Sub)
+            if (MType == (byte)ConnMessType.Auth)
             {
-                if (Packet != "")
+                states.serverState = (ServerState)Enum.Parse(typeof(ServerState), Mess);
+            }
+            if (MType == (byte)ConnMessType.Sub)
+            {
+                if (Mess != "")
                 {
                     sub = true;
-                    subc = Packet;
+                    subc = Mess;
                     subs = subc.Split(';').Where(x => x.Split('=')[0] == "sessionid").First().Split('=')[1];
                 }
                 else
@@ -549,15 +480,19 @@ namespace Knife
                 }
             }
         }
-        void client_Disconnected()
+        void NClient_Disconnected()
         {
-            states.clientState = ClientState.Disconnected;
+            states.serverState = ServerState.NotAuth;
+            ServerAuth();
         }
-        void client_Connected()
+        void NClient_Connected(string State)
         {
-            states.clientState = ClientState.Connected;
+            if ((ServerState)Enum.Parse(typeof(ServerState), State) == ServerState.Deny)
+                states.serverState = ServerState.NotAuth;
+            else
+                states.serverState = (ServerState)Enum.Parse(typeof(ServerState), State);
         }
-
+        
         void Init()
         {
             if (IsInitRunned)
@@ -565,128 +500,108 @@ namespace Knife
             IsInitRunned = true;
             try
             {
-                if (states.clientState == ClientState.Disconnected)
+                if (states.steamAuthState == SteamAuthState.NotAuth)
                 {
-                    InitConn();
+                    SteamAuth(false);
                 }
-                if (states.clientState == ClientState.Connected && states.steamAuthState == SteamAuthState.NotAuth)
-                {
-                    SteamAuth();
-                }
-                if (states.clientState == ClientState.Connected && states.steamAuthState == SteamAuthState.Auth && states.serverState == ServerState.NotAuth)
+                if (states.steamAuthState == SteamAuthState.Auth && states.serverState == ServerState.NotAuth)
                 {
                     ServerAuth();
                 }
             }
             catch
             {
-                states.clientState = ClientState.Disconnected;
                 states.steamAuthState = SteamAuthState.NotAuth;
                 states.serverState = ServerState.NotAuth;
             }
             IsInitRunned = false;
         }
-        void InitConn()
-        {
-            states.clientState = ClientState.Connecting;
-            try
-            {
-                client.Connect(ServerIp, ServerPort, false);
-                states.clientState = ClientState.Connected;
-            }
-            catch
-            {
-                states.clientState = ClientState.Disconnected;
-            }
-        }
-        void SteamAuth()
+        void SteamAuth(bool refresh)
         {
             DateTime dt = DateTime.Now;
             states.steamAuthState = SteamAuthState.Authing;
             wbload = false;
-                try
+            try
+            {
+                wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
                 {
+                    wb.Source = new Uri("http://google.com");
+                    wb.Source = new Uri("http://steamcommunity.com/market/"); 
+                }));
+                while (!wbload)
+                {
+                    Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { }));
+                    if ((DateTime.Now - dt).TotalMilliseconds > 15000)
+                    {
+                        states.steamAuthState = SteamAuthState.NotAuth;
+                        return;
+                    }
+                } 
+                string qwe = "";
+                wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
+                {
+                    qwe = wb.Source.AbsoluteUri;
+                }));
+                if (qwe == "http://steamcommunity.com/market/" || qwe == "https://steamcommunity.com/market/")
+                {
+                    HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
                     wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
                     {
-                        wb.Source = new Uri("http://google.com");
-                        wb.Source = new Uri("http://steamcommunity.com/market/"); 
+                        doc.LoadHtml(wb.ExecuteJavascriptWithResult("document.documentElement.outerHTML").ToString());
                     }));
-                    while (!wbload)
+                    if (doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").Count() != 0)
                     {
-                        Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { }));
-                        if ((DateTime.Now - dt).TotalMilliseconds > 15000)
+                        AccMoney = Convert.ToDouble(doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").First().InnerText.Split(' ')[0]);
+                        if (AccMoney > 1500)
+                            MoneyLimit = 1500;
+                        else
+                            MoneyLimit = AccMoney;
+                        accid = doc.DocumentNode.Descendants("span").Where(c => c.Id == "account_pulldown").First().InnerText; 
+                        string ProfileLink = doc.DocumentNode.Descendants("img").Where(x => x.Id == "headerUserAvatarIcon").First().ParentNode.GetAttributeValue("href", "");
+                        wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
                         {
-                            states.steamAuthState = SteamAuthState.NotAuth;
-                            return;
+                            wb.Source = new Uri(ProfileLink);
+                        }));
+                        wbload = false;
+                        while (!wbload)
+                        {
+                            Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { }));
+                            if ((DateTime.Now - dt).TotalMilliseconds > 15000)
+                            {
+                                states.steamAuthState = SteamAuthState.NotAuth;
+                                return;
+                            }
                         }
-                    } 
-                    string qwe = "";
-                    wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
-                    {
-                        qwe = wb.Source.AbsoluteUri;
-                    }));
-                    if (qwe == "http://steamcommunity.com/market/" || qwe == "https://steamcommunity.com/market/")
-                    {
-                        HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
                         wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
                         {
                             doc.LoadHtml(wb.ExecuteJavascriptWithResult("document.documentElement.outerHTML").ToString());
                         }));
-                        if (doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").Count() != 0)
+                        ProfileImgLink = doc.DocumentNode.Descendants("div").Where(x => x.GetAttributeValue("class", "").IndexOf("playerAvatar profile_header_size") != -1).First().ChildNodes.Where(x => x.Name == "img").First().GetAttributeValue("src", "");
+                        if (GetCookies())
                         {
-                            AccMoney = Convert.ToDouble(doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").First().InnerText.Split(' ')[0]);
-                            if (AccMoney > 1500)
-                                MoneyLimit = 1500;
-                            else
-                                MoneyLimit = AccMoney;
-                            accid = doc.DocumentNode.Descendants("span").Where(c => c.Id == "account_pulldown").First().InnerText; 
-                            string ProfileLink = doc.DocumentNode.Descendants("img").Where(x => x.Id == "headerUserAvatarIcon").First().ParentNode.GetAttributeValue("href", "");
-                            wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
-                            {
-                                wb.Source = new Uri(ProfileLink);
-                            }));
-                            wbload = false;
-                            while (!wbload)
-                            {
-                                Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { }));
-                                if ((DateTime.Now - dt).TotalMilliseconds > 15000)
-                                {
-                                    states.steamAuthState = SteamAuthState.NotAuth;
-                                    return;
-                                }
-                            }
-                            wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
-                            {
-                                doc.LoadHtml(wb.ExecuteJavascriptWithResult("document.documentElement.outerHTML").ToString());
-                            }));
-                            ProfileImgLink = doc.DocumentNode.Descendants("div").Where(x => x.GetAttributeValue("class", "").IndexOf("playerAvatar profile_header_size") != -1).First().ChildNodes.Where(x => x.Name == "img").First().GetAttributeValue("src", "");
-                            if (GetCookies())
-                            {
-                                states.steamAuthState = SteamAuthState.Auth;
+                            states.steamAuthState = SteamAuthState.Auth;
 
-                            }
-                            else
-                            {
-                                states.steamAuthState = SteamAuthState.NotAuth;
-                            }
                         }
                         else
                         {
-                            states.steamAuthState = SteamAuthState.NotLogged;
+                            states.steamAuthState = SteamAuthState.NotAuth;
                         }
                     }
+                    else
+                    {
+                        states.steamAuthState = SteamAuthState.NotLogged;
+                    }
                 }
-                catch(Exception e)
-                {
-                    states.steamAuthState = SteamAuthState.NotAuth;
-                    MessageBox.Show(e.Message.ToString() +Environment.NewLine + e.ToString());
-                }
-            
-
+            }
+            catch(Exception e)
+            {
+                states.steamAuthState = SteamAuthState.NotAuth;
+                MessageBox.Show(e.Message.ToString() +Environment.NewLine + e.ToString());
+            }
         }
         void ServerAuth()
         {
-            client.Send((byte)ConnMessType.Auth, accid + "<:>" + ProfileImgLink + "<:>" + MoneyLimit.ToString());
+            NClient.Connect(ServerIp, ServerPort, accid + "<:>" + ProfileImgLink + "<:>" + MoneyLimit.ToString());
             states.serverState = ServerState.Authing;
         }
         bool GetCookies()
@@ -736,6 +651,7 @@ namespace Knife
             {
                 try
                 {
+                    NClient.Send((byte)ConnMessType.CAct, SearchState.Search.ToString());
                     HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create("http://steamcommunity.com/market/search/render/?query=&start=0&count=" + GetCount1 + "&search_descriptions=0&sort_column=price&sort_dir=asc&appid=730&category_730_Type%5B%5D=tag_CSGO_Type_Knife&l=russian");
                     //HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create("http://steamcommunity.com/market/search/render/?query=&start=0&count=1&search_descriptions=0&sort_column=price&sort_dir=asc&appid=730&category_730_Weapon%5B%5D=tag_weapon_elite&l=russian");
                     //HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create("http://steamcommunity.com/market/search/render/?query=&start=0&count=1&search_descriptions=0&sort_column=price&sort_dir=asc&appid=730&l=russian");
@@ -743,14 +659,15 @@ namespace Knife
                     req.Method = "GET";
                     req.Timeout = 2000;
                     req.Headers.Add("Cookie", Cookie);
-                    WebResponse resp = req.GetResponse();
+                    WebResponse resp = req.GetResponse(); 
+
                     StreamReader sr = new StreamReader(resp.GetResponseStream());
-                    string str = sr.ReadToEnd();
-                    sr.Close();
+                    string str = sr.ReadToEnd(); 
+                    sr.Close(); 
                     dynamic obj = JsonConvert.DeserializeObject(str);
-                    string htmlstr = obj.results_html.ToString();
-                    HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
-                    doc.LoadHtml(htmlstr);
+                    string htmlstr = obj.results_html.ToString(); 
+                    HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument(); 
+                    doc.LoadHtml(htmlstr); 
                     List<listing> prices = new List<listing>();
                     foreach (HtmlAgilityPack.HtmlNode q in doc.DocumentNode.Descendants("div").Where(x => x.GetAttributeValue("class", "") == "market_listing_right_cell market_listing_their_price"))
                     {
@@ -761,7 +678,7 @@ namespace Knife
                         });
                     }
                     prices = prices.OrderBy(x => x.price).ToList();
-                    client.Send((byte)ConnMessType.Log, "SS:" + prices.First().price.ToString());
+                    //NClient.Send((byte)ConnMessType.Log, "SS:" + prices.First().price.ToString());
                     if (LastPrice != prices.First().price)
                     {
                         LastPrice = prices.First().price;
@@ -773,14 +690,16 @@ namespace Knife
                     if (prices.First().price <= MoneyLimit)
                     {
                         states.searchState = SearchState.GetKnife;
-                        Console.WriteLine("Get knife");
+                        //Console.WriteLine("Get knife");
                         KGetLot(prices.First().sender);
+                        KnivesStats1.Insert(0, new SKnife() { date = DateTime.Now, price = prices.First().price.ToString(), sender = prices.First().sender });
+                        SaveStats1();
                     }
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine("Search error");
-                    client.Send((byte)ConnMessType.Log, "Se");
+                    //Console.WriteLine("Search error: " + e.ToString());
+                    //NClient.Send((byte)ConnMessType.Log, "Se");
                 }
             }
         }
@@ -788,6 +707,7 @@ namespace Knife
         {
             try
             {
+                NClient.Send((byte)ConnMessType.CAct, SearchState.GetKnife.ToString());
                 string str = "";
                 HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create(sender + "/render?start=0&count=" + GetCount2 + "&currency=5&language=english&format=json");
                 req.Proxy = null;
@@ -833,7 +753,7 @@ namespace Knife
                         states.searchState = SearchState.Buying;
                         foreach(listing2 l in ToBuy)
                             new Thread(() => KBuy(l)).Start();
-                        client.Send((byte)ConnMessType.Log, "GetLotsSucc: " + ToBuy.Count + "/" + lst.Count);
+                        //NClient.Send((byte)ConnMessType.Log, "GetLotsSucc: " + ToBuy.Count + "/" + lst.Count);
                         while(ToBuy.Where(x => !x.BA).Count() != 0)
                             Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { }));
                         NewKnives(ToBuy);
@@ -842,28 +762,29 @@ namespace Knife
                     else
                     {
                         states.searchState = SearchState.Search;
-                        Console.WriteLine("All knives corrupt");
-                        client.Send((byte)ConnMessType.Log, "All knives corrupt");
+                        //Console.WriteLine("All knives corrupt");
+                        //NClient.Send((byte)ConnMessType.Log, "All knives corrupt");
                     }
                 }
                 else
                 {
                     states.searchState = SearchState.Search;
-                    Console.WriteLine("All sold");
-                    client.Send((byte)ConnMessType.Log, "All sold");
+                    //Console.WriteLine("All sold");
+                    //NClient.Send((byte)ConnMessType.Log, "All sold");
                 }
             }
             catch(Exception e)
             {
                 states.searchState = SearchState.Search;
-                Console.WriteLine("GetKnife error: " + e.Message);
-                client.Send((byte)ConnMessType.Log, "GetKnife error: " + e.Message);
+                //Console.WriteLine("GetKnife error: " + e.Message);
+                //NClient.Send((byte)ConnMessType.Log, "GetKnife error: " + e.Message);
             }
         }
         void KBuy(listing2 l)
         {
             try
             {
+                NClient.Send((byte)ConnMessType.CAct, SearchState.Buying.ToString());
                 HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create("https://steamcommunity.com/market/buylisting/" + l.listingid);
                 req.Proxy = null;
                 req.Method = "POST";
@@ -896,25 +817,28 @@ namespace Knife
                 if (AccMoney < MoneyLimit)
                     MoneyLimit = AccMoney;
                 //states.searchState = SearchState.Search;
-                Console.WriteLine("Buying succ");
-                client.Send((byte)ConnMessType.Log, "Buying succ:" + (Convert.ToDouble(l.total) / 100));
+                //Console.WriteLine("Buying succ");
+                //NCclient.Send((byte)ConnMessType.Log, "Buying succ:" + (Convert.ToDouble(l.total) / 100));
                 l.BA = true;
                 l.succ = true;
+                states.newknife = true;
             }
             catch (Exception e)
             {
                 //states.searchState = SearchState.Search;
-                Console.WriteLine("Buying error: " + e.Message);
-                client.Send((byte)ConnMessType.Log, "Buying error: " + e.Message);
+                //Console.WriteLine("Buying error: " + e.Message);
+                //NCclient.Send((byte)ConnMessType.Log, "Buying error: " + e.Message);
                 l.BA = true;
                 l.succ = false;
             }
         }
         void NewKnives(List<listing2> l)
         {
+            bool nk = false;
             foreach(listing2 x in l)
             {
                 x.price = (Convert.ToDouble(x.price) / 100).ToString();
+                if (x.succ) nk = true;
                 KnivesStats.Add(new SKnife()
                 {
                     date = DateTime.Now,
@@ -923,10 +847,9 @@ namespace Knife
                     sender = x.sender
                 });
             }
-            SaveStats();
+            SaveStats(nk ? true : false);
             states.searchState = SearchState.Search;
         }
-
         private void wb_InitializeView(object sender, Awesomium.Core.WebViewEventArgs e)
         {
             wb.WebSession = Awesomium.Core.WebCore.CreateWebSession(System.Environment.CurrentDirectory, new Awesomium.Core.WebPreferences());
@@ -950,19 +873,18 @@ namespace Knife
 
         private void MetroWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            //FileStream fs = new FileStream("Access.key", FileMode.Create, FileAccess.Write);
+            //FileStream fs = new FileStream("Knives1.key", FileMode.Create, FileAccess.Write);
             //StreamWriter sw = new StreamWriter(fs);
             //sw.Write(Crypt.Crypt.Encrypt("GC1=1;GC2=1;Offline=false"));
-            ////sw.Write(Crypt.Crypt.Encrypt("nothing"));
+            //sw.Write(Crypt.Crypt.Encrypt("nothing"));
             //sw.Close();
             //fs.Close();
-            AllocConsole();
-            states.clientState = ClientState.Disconnected;
+            //AllocConsole();
             states.steamAuthState = SteamAuthState.NotAuth;
             states.serverState = ServerState.NotAuth;
             states.searchState = SearchState.Off;
             sett.Margin = new Thickness(0, 0, -sett.Width, 30);
-            if (LoadSettings() && LoadStats())
+            if (LoadSettings() && LoadStats() && LoadStats1())
             {
                 System.Timers.Timer CheckAllTimer = new System.Timers.Timer(1000);
                 CheckAllTimer.Elapsed += (ss, ee) =>
@@ -970,12 +892,13 @@ namespace Knife
                     new Thread(() => Init()).Start();
                 };
                 CheckAllTimer.Enabled = true; 
-            }
+            } 
 
         }
         private void MW_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             states.searchState = SearchState.Off;
+            NClient.Shutdown();
         }
         private void Settings_Button_Click(object sender, RoutedEventArgs e)
         {
@@ -1054,13 +977,65 @@ namespace Knife
                 }
             }
         }
-        void SaveStats()
+        void SaveStats(bool send)
         {
             FileStream fs = new FileStream("Knives.key", FileMode.Create, FileAccess.Write);
             StreamWriter sw = new StreamWriter(fs);
             string str = "";
             foreach (SKnife k in KnivesStats)
                 str += k.date.ToString() + "<:>" + k.price + "<:>" + k.succ.ToString() + "<:>" + k.sender + "<::>";
+            string estr = Crypt.Crypt.Encrypt(str);
+            sw.Write(estr);
+            sw.Close();
+            fs.Close();
+            if(send)
+                NClient.Send((byte)ConnMessType.NK, estr);
+        }
+        bool LoadStats1()
+        {
+            if (!File.Exists("Knives1.key"))
+            {
+                ColorGrid.Visibility = System.Windows.Visibility.Hidden;
+                return false;
+            }
+            else
+            {
+                try
+                {
+                    KnivesStats1.Clear();
+                    FileStream fs = new FileStream("Knives1.key", FileMode.Open, FileAccess.Read);
+                    StreamReader sr = new StreamReader(fs);
+                    string str = Crypt.Crypt.Decrypt(sr.ReadToEnd());
+                    sr.Close();
+                    fs.Close();
+                    if (str != "nothing")
+                    {
+                        foreach (string s in str.Split(new string[] { "<::>" }, StringSplitOptions.RemoveEmptyEntries))
+                        {
+                            KnivesStats1.Add(new SKnife()
+                            {
+                                date = Convert.ToDateTime(s.Split(new string[] { "<:>" }, StringSplitOptions.RemoveEmptyEntries)[0]),
+                                price = s.Split(new string[] { "<:>" }, StringSplitOptions.RemoveEmptyEntries)[1],
+                                sender = s.Split(new string[] { "<:>" }, StringSplitOptions.RemoveEmptyEntries)[2]
+                            });
+                        }
+                    }
+                    return true;
+                }
+                catch
+                {
+                    ColorGrid.Visibility = System.Windows.Visibility.Hidden;
+                    return false;
+                }
+            }
+        }
+        void SaveStats1()
+        {
+            FileStream fs = new FileStream("Knives1.key", FileMode.Create, FileAccess.Write);
+            StreamWriter sw = new StreamWriter(fs);
+            string str = "";
+            foreach (SKnife k in KnivesStats1)
+                str += k.date.ToString() + "<:>" + k.price + "<:>" + k.sender + "<::>";
             sw.Write(Crypt.Crypt.Encrypt(str));
             sw.Close();
             fs.Close();
@@ -1135,8 +1110,13 @@ namespace Knife
         }
         private void B_KnivesStat_Click(object sender, RoutedEventArgs e)
         {
-            Stats f = new Stats(KnivesStats);
-            f.Show();
+            Stats s = new Stats(KnivesStats);
+            s.Show();
+        }
+        private void B_KnivesStat_Click1(object sender, RoutedEventArgs e)
+        {
+            Stats s = new Stats(KnivesStats1);
+            s.Show();
         }
         public class listing
         {
@@ -1153,7 +1133,52 @@ namespace Knife
             public string sender { get; set; }
             public bool succ { get; set; }
         }
-        
+        private void Button_Click1(object sender, RoutedEventArgs e)
+        {
+            states.searchState = SearchState.Off;
+        }
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            wbload = false;
+            wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
+            {
+                wb.Source = new Uri("http://google.com");
+                wb.Source = new Uri("http://steamcommunity.com/market/");
+            }));
+            while (!wbload)
+            {
+                Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { }));
+            }
+            string qwe = "";
+            wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
+            {
+                qwe = wb.Source.AbsoluteUri;
+            }));
+            if (qwe == "http://steamcommunity.com/market/" || qwe == "https://steamcommunity.com/market/")
+            {
+                HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
+                wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
+                {
+                    doc.LoadHtml(wb.ExecuteJavascriptWithResult("document.documentElement.outerHTML").ToString());
+                }));
+                if (doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").Count() != 0)
+                {
+                    AccMoney = Convert.ToDouble(doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").First().InnerText.Split(' ')[0]);
+                    MoneySlider.Maximum = AccMoney;
+                    MoneySlider.Value = MoneyLimit;
+                }
+            }
+        }
+
+        private void ColorGrid_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (states.newknife)
+            {
+                states.newknife = false;
+                Stats s = new Stats(KnivesStats);
+                s.Show();
+            }
+        }
     }
     public class SKnife
     {
@@ -1167,16 +1192,98 @@ namespace Knife
         Auth,
         Sub,
         Log,
-        CAct
+        CAct,
+        Alive,
+        NK
     }
+    public static class NClient
+    {
+        public static event ConnectedEventHandler Connected;
+        public delegate void ConnectedEventHandler(string State);
+
+        public static event DisconnectedEventHandler Disconnected;
+        public delegate void DisconnectedEventHandler();
+
+        public static event ReceivedEventHandler Received;
+        public delegate void ReceivedEventHandler(byte MType, string Mess);
+
+        static NetClient s_client;
+        static NClient()
+        {
+            NetPeerConfiguration config = new NetPeerConfiguration("Knife");
+            config.AutoFlushSendQueue = false;
+            config.ConnectionTimeout = 10;
+            s_client = new NetClient(config);
+            s_client.RegisterReceivedCallback(new SendOrPostCallback(callb));
+        }
+        public static void Connect(string host, int port, string AM)
+        {
+            s_client.Start();
+            NetOutgoingMessage hail = s_client.CreateMessage(AM);
+            s_client.Connect(host, port, hail);
+        }
+        public static void Shutdown()
+        {
+            s_client.Disconnect("Requested by user");
+            s_client.Shutdown("");
+        }
+        public static void Send(byte MType, string Mess)
+        {
+            string ToSend = MType.ToString() + "<:SS:>" + Mess;
+            NetOutgoingMessage om = s_client.CreateMessage(ToSend);
+            s_client.SendMessage(om, NetDeliveryMethod.ReliableOrdered);
+            s_client.FlushSendQueue();
+        }
+        static void callb(object peer)
+        {
+            NetIncomingMessage im;
+            while ((im = s_client.ReadMessage()) != null)
+            {
+                // handle incoming message
+                switch (im.MessageType)
+                {
+                    case NetIncomingMessageType.DebugMessage:
+                    case NetIncomingMessageType.ErrorMessage:
+                    case NetIncomingMessageType.WarningMessage:
+                    case NetIncomingMessageType.VerboseDebugMessage:
+                        string text = im.ReadString();
+                        //Output(text);
+                        break;
+                    case NetIncomingMessageType.StatusChanged:
+                        NetConnectionStatus status = (NetConnectionStatus)im.ReadByte();
+
+                        if (status == NetConnectionStatus.Connected)
+                        {
+                            ConnectedEventHandler CE = Connected;
+                            if (CE != null)
+                                CE(im.SenderConnection.RemoteHailMessage.ReadString());
+                        }
+                        if (status == NetConnectionStatus.Disconnected)
+                        {
+                            DisconnectedEventHandler DE = Disconnected;
+                            if (DE != null)
+                                DE();
+                        }
+
+                        string reason = im.ReadString();
+                        //Output(status.ToString() + ": " + reason);
+
+                        break;
+                    case NetIncomingMessageType.Data:
+                        string msg = im.ReadString();
+                        byte MType = Convert.ToByte(msg.Split(new string[]{"<:SS:>"}, StringSplitOptions.None)[0]);
+                        string Mess = msg.Split(new string[]{"<:SS:>"}, StringSplitOptions.None)[1];
+                        ReceivedEventHandler RE = Received;
+                        if (RE != null)
+                            RE(MType, Mess);
+                        break;
+                    default:
+                        //Output("Unhandled type: " + im.MessageType + " " + im.LengthBytes + " bytes");
+                        break;
+                }
+                s_client.Recycle(im);
+            }
+        }
+    }
+
 }
-//search ------- search sucsessfull--
-//           |-- search error
-//
-//get knife ---- get sucsessfull--
-//           |-- lot sold
-//           |-- get error
-//           |-- price err
-//
-//buying ------- buy succ
-//           |-- buy err
