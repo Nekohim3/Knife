@@ -28,6 +28,7 @@
                 <Button Content="buy statictics" HorizontalAlignment="Left" VerticalAlignment="Top" Width="160" Style="{DynamicResource SquareButtonStyle}" Click="B_KnivesStat_Click"  Height="30" Margin="0,162,0,0"/>
                 <Button Content="Refresh Steam profile" HorizontalAlignment="Left" VerticalAlignment="Top" Width="160" Style="{DynamicResource SquareButtonStyle}" Click="Button_Click"  Height="30" Margin="0,231,0,0"/>
                 <Button Content="knives statistics" HorizontalAlignment="Left" VerticalAlignment="Top" Width="160" Style="{DynamicResource SquareButtonStyle}" Click="B_KnivesStat_Click1"  Height="30" Margin="0,196,0,0"/>
+                <Button Content="Refresh Steam profile" HorizontalAlignment="Left" VerticalAlignment="Top" Width="160" Style="{DynamicResource SquareButtonStyle}" Click="Button_Click1"  Height="30" Margin="0,261,0,0"/>
             </Grid>
         </ScrollViewer>
 

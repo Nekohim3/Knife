@@ -652,8 +652,13 @@ namespace Knife
                 try
                 {
                     NClient.Send((byte)ConnMessType.CAct, SearchState.Search.ToString());
-                    HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create("http://steamcommunity.com/market/search/render/?query=&start=0&count=" + GetCount1 + "&search_descriptions=0&sort_column=price&sort_dir=asc&appid=730&category_730_Type%5B%5D=tag_CSGO_Type_Knife&l=russian");
-                    //HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create("http://steamcommunity.com/market/search/render/?query=&start=0&count=1&search_descriptions=0&sort_column=price&sort_dir=asc&appid=730&category_730_Weapon%5B%5D=tag_weapon_elite&l=russian");
+                    string sstr = "";
+                    if (!test)
+                        sstr = "http://steamcommunity.com/market/search/render/?query=&start=0&count=" + GetCount1 + "&search_descriptions=0&sort_column=price&sort_dir=asc&appid=730&category_730_Type%5B%5D=tag_CSGO_Type_Knife&l=russian";
+                    else
+                        sstr = "http://steamcommunity.com/market/search/render/?query=&start=0&count=1&search_descriptions=0&sort_column=price&sort_dir=asc&appid=730&l=russian";
+                        //HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create("http://steamcommunity.com/market/search/render/?query=&start=0&count=" + GetCount1 + "&search_descriptions=0&sort_column=price&sort_dir=asc&appid=730&category_730_Type%5B%5D=tag_CSGO_Type_Knife&l=russian");
+                    HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create(sstr);
                     //HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create("http://steamcommunity.com/market/search/render/?query=&start=0&count=1&search_descriptions=0&sort_column=price&sort_dir=asc&appid=730&l=russian");
                     req.Proxy = null;
                     req.Method = "GET";
@@ -1133,9 +1138,13 @@ namespace Knife
             public string sender { get; set; }
             public bool succ { get; set; }
         }
+        bool test = true;
         private void Button_Click1(object sender, RoutedEventArgs e)
         {
-            states.searchState = SearchState.Off;
+            if (test)
+                test = false;
+            else
+                test = true;
         }
         private void Button_Click(object sender, RoutedEventArgs e)
         {
@@ -1174,6 +1183,18 @@ namespace Knife
         {
             if (states.newknife)
             {
+                if (states.searchState == SearchState.Search || states.searchState == SearchState.Off)
+                {
+                    ColorAnimation ca = new ColorAnimation();
+                    ca.From = ((SolidColorBrush)ColorGrid.Background).Color;
+                    ca.To = Color.FromArgb(255, 16, 16, 16);
+                    ca.Duration = TimeSpan.FromMilliseconds(500);
+                    ca.EasingFunction = new PowerEase()
+                    {
+                        EasingMode = EasingMode.EaseOut
+                    };
+                    ColorGrid.Background.BeginAnimation(SolidColorBrush.ColorProperty, ca);
+                }
                 states.newknife = false;
                 Stats s = new Stats(KnivesStats);
                 s.Show();
