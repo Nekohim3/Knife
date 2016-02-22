@@ -21,7 +21,7 @@ using System.Runtime.InteropServices;
 using System.Windows.Threading;
 using System.Net;
 using Newtonsoft.Json;
-using Lidgren.Network;
+using System.Diagnostics;
 namespace Knife
 {
     /// <summary>
@@ -36,18 +36,17 @@ namespace Knife
         {
             InitializeComponent();
             states = new States(this);
-            NClient.Connected += NClient_Connected;
-            NClient.Disconnected += NClient_Disconnected;
-            NClient.Received += NClient_Received;
+            //NClient.Connected += NClient_Connected;
+            //NClient.Disconnected += NClient_Disconnected;
+            //NClient.Received += NClient_Received;
         }
 
         States states;
-        string ProfileImgLink = "";
+        //string ProfileImgLink = "";
         string accid = "";
         bool CanOffline = false;
         bool sub = false;
         string sessionId = "";
-        string Cookie = "";
 
         string subc = "";
         string subs = "";
@@ -57,18 +56,15 @@ namespace Knife
         double AccMoney = 0;
         double LastPrice = 0;
         bool setts = false;
-        bool wbload = false;
+        //bool wbload = false;
         bool IsInitRunned = false;
-        Point lastwndsize = new Point();
-        bool Steam_waitforlog = false;
+        //Point lastwndsize = new Point();
         int GetCount1 = 1;
         int GetCount2 = 1;
 
         List<SKnife> KnivesStats = new List<SKnife>();
         List<SKnife> KnivesStats1 = new List<SKnife>();
-        string ServerIp = "94.19.181.93";
-        int ServerPort = 18346;
-
+        string linkk = "http://google.com";
         public class States
         {
             public bool newknife = false;
@@ -479,6 +475,23 @@ namespace Knife
                     subs = "";
                 }
             }
+            if(MType == (byte)ConnMessType.FK)
+            {
+                new Thread(() => { KGetLot(Mess); }).Start();
+            }
+        }
+        static byte[] GetBytes(string str)
+        {
+            byte[] bytes = new byte[str.Length * sizeof(char)];
+            System.Buffer.BlockCopy(str.ToCharArray(), 0, bytes, 0, bytes.Length);
+            return bytes;
+        }
+
+        static string GetString(byte[] bytes)
+        {
+            char[] chars = new char[bytes.Length / sizeof(char)];
+            System.Buffer.BlockCopy(bytes, 0, chars, 0, bytes.Length);
+            return new string(chars);
         }
         void NClient_Disconnected()
         {
@@ -495,6 +508,9 @@ namespace Knife
         
         void Init()
         {
+            t.Interval = 15000;
+            t.Tick += t_Tick;
+            t.Start();
             if (IsInitRunned)
                 return;
             IsInitRunned = true;
@@ -516,211 +532,271 @@ namespace Knife
             }
             IsInitRunned = false;
         }
+        int conterq = 0;
+        void t_Tick(object sender, EventArgs e)
+        {
+            conterq++;
+            if(conterq == 20)
+            {
+                qwer1.Clear();
+            }
+        }
         void SteamAuth(bool refresh)
         {
-            DateTime dt = DateTime.Now;
-            states.steamAuthState = SteamAuthState.Authing;
-            wbload = false;
-            try
-            {
-                wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
-                {
-                    wb.Source = new Uri("http://google.com");
-                    wb.Source = new Uri("http://steamcommunity.com/market/"); 
-                }));
-                while (!wbload)
-                {
-                    Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { }));
-                    if ((DateTime.Now - dt).TotalMilliseconds > 15000)
-                    {
-                        states.steamAuthState = SteamAuthState.NotAuth;
-                        return;
-                    }
-                } 
-                string qwe = "";
-                wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
-                {
-                    qwe = wb.Source.AbsoluteUri;
-                }));
-                if (qwe == "http://steamcommunity.com/market/" || qwe == "https://steamcommunity.com/market/")
-                {
-                    HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
-                    wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
-                    {
-                        doc.LoadHtml(wb.ExecuteJavascriptWithResult("document.documentElement.outerHTML").ToString());
-                    }));
-                    if (doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").Count() != 0)
-                    {
-                        AccMoney = Convert.ToDouble(doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").First().InnerText.Split(' ')[0]);
-                        if (AccMoney > 1500)
-                            MoneyLimit = 1500;
-                        else
-                            MoneyLimit = AccMoney;
-                        accid = doc.DocumentNode.Descendants("span").Where(c => c.Id == "account_pulldown").First().InnerText; 
-                        string ProfileLink = doc.DocumentNode.Descendants("img").Where(x => x.Id == "headerUserAvatarIcon").First().ParentNode.GetAttributeValue("href", "");
-                        wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
-                        {
-                            wb.Source = new Uri(ProfileLink);
-                        }));
-                        wbload = false;
-                        while (!wbload)
-                        {
-                            Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { }));
-                            if ((DateTime.Now - dt).TotalMilliseconds > 15000)
-                            {
-                                states.steamAuthState = SteamAuthState.NotAuth;
-                                return;
-                            }
-                        }
-                        wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
-                        {
-                            doc.LoadHtml(wb.ExecuteJavascriptWithResult("document.documentElement.outerHTML").ToString());
-                        }));
-                        ProfileImgLink = doc.DocumentNode.Descendants("div").Where(x => x.GetAttributeValue("class", "").IndexOf("playerAvatar profile_header_size") != -1).First().ChildNodes.Where(x => x.Name == "img").First().GetAttributeValue("src", "");
-                        if (GetCookies())
-                        {
-                            states.steamAuthState = SteamAuthState.Auth;
-
-                        }
-                        else
-                        {
-                            states.steamAuthState = SteamAuthState.NotAuth;
-                        }
-                    }
-                    else
-                    {
-                        states.steamAuthState = SteamAuthState.NotLogged;
-                    }
-                }
+            try {
+                states.steamAuthState = SteamAuthState.Authing;
+                Tuple<string, string> res = SAuth.SAuth.Auth();
+                AccMoney = Convert.ToDouble(res.Item1.Split(' ')[0]);
+                if (AccMoney > 1500)
+                    MoneyLimit = 1500;
+                else
+                    MoneyLimit = AccMoney;
+                
+                if (SAuth.CManager.Get() != "" && AccMoney != -1)
+                    states.steamAuthState = SteamAuthState.Auth;
+                else
+                    states.steamAuthState = SteamAuthState.NotAuth;
             }
-            catch(Exception e)
+            catch
             {
                 states.steamAuthState = SteamAuthState.NotAuth;
-                MessageBox.Show(e.Message.ToString() +Environment.NewLine + e.ToString());
             }
+            //DateTime dt = DateTime.Now;
+            //
+            //wbload = false;
+            //try
+            //{
+            //    wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
+            //    {
+            //        wb.Source = new Uri("http://google.com");
+            //        wb.Source = new Uri("http://steamcommunity.com/market/"); 
+            //    }));
+            //    while (!wbload)
+            //    {
+            //        Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { }));
+            //        if ((DateTime.Now - dt).TotalMilliseconds > 15000)
+            //        {
+            //            states.steamAuthState = SteamAuthState.NotAuth;
+            //            return;
+            //        }
+            //    } 
+            //    string qwe = "";
+            //    wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
+            //    {
+            //        qwe = wb.Source.AbsoluteUri;
+            //    }));
+            //    if (qwe == "http://steamcommunity.com/market/" || qwe == "https://steamcommunity.com/market/")
+            //    {
+            //        HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
+            //        wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
+            //        {
+            //            doc.LoadHtml(wb.ExecuteJavascriptWithResult("document.documentElement.outerHTML").ToString());
+            //        }));
+            //        if (doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").Count() != 0)
+            //        {
+            //            AccMoney = Convert.ToDouble(doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").First().InnerText.Split(' ')[0]);
+            //            if (AccMoney > 1500)
+            //                MoneyLimit = 1500;
+            //            else
+            //                MoneyLimit = AccMoney;
+            //            accid = doc.DocumentNode.Descendants("span").Where(c => c.Id == "account_pulldown").First().InnerText; 
+            //            string ProfileLink = doc.DocumentNode.Descendants("img").Where(x => x.Id == "headerUserAvatarIcon").First().ParentNode.GetAttributeValue("href", "");
+            //            wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
+            //            {
+            //                wb.Source = new Uri(ProfileLink);
+            //            }));
+            //            wbload = false;
+            //            while (!wbload)
+            //            {
+            //                Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { }));
+            //                if ((DateTime.Now - dt).TotalMilliseconds > 15000)
+            //                {
+            //                    states.steamAuthState = SteamAuthState.NotAuth;
+            //                    return;
+            //                }
+            //            }
+            //            wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
+            //            {
+            //                doc.LoadHtml(wb.ExecuteJavascriptWithResult("document.documentElement.outerHTML").ToString());
+            //            }));
+            //            ProfileImgLink = doc.DocumentNode.Descendants("div").Where(x => x.GetAttributeValue("class", "").IndexOf("playerAvatarAutoSizeInner") != -1).First().ChildNodes.Where(x => x.Name == "img").First().GetAttributeValue("src", "");
+            //            if (GetCookies())
+            //            {
+            //                states.steamAuthState = SteamAuthState.Auth;
+
+            //            }
+            //            else
+            //            {
+            //                states.steamAuthState = SteamAuthState.NotAuth;
+            //            }
+            //        }
+            //        else
+            //        {
+            //            states.steamAuthState = SteamAuthState.NotLogged;
+            //        }
+            //    }
+            //}
+            //catch(Exception e)
+            //{
+            //    states.steamAuthState = SteamAuthState.NotAuth;
+            //    MessageBox.Show(e.Message.ToString() +Environment.NewLine + e.ToString());
+            //}
         }
         void ServerAuth()
         {
-            NClient.Connect(ServerIp, ServerPort, accid + "<:>" + ProfileImgLink + "<:>" + MoneyLimit.ToString());
-            states.serverState = ServerState.Authing;
+            //NClient.Connect(ServerIp, ServerPort, accid + "<:>" + ProfileImgLink + "<:>" + MoneyLimit.ToString());
+            states.serverState = ServerState.Auth;
         }
-        bool GetCookies()
+        System.Windows.Forms.Timer t = new System.Windows.Forms.Timer();
+        bool test = false;
+        string sstrnt = "http://steamcommunity.com/market/search/render/?query=&start=0&count=1&search_descriptions=0&sort_column=price&sort_dir=asc&appid=730&category_730_Type%5B%5D=tag_CSGO_Type_Knife&l=russian";
+        string sstrt = "http://steamcommunity.com/market/search/render/?query=&start=0&count=1&search_descriptions=0&sort_column=price&sort_dir=asc&appid=730&category_730_ItemSet%5B%5D=any&category_730_ProPlayer%5B%5D=any&category_730_TournamentTeam%5B%5D=any&category_730_Weapon%5B%5D=any&category_730_Exterior%5B%5D=tag_WearCategory2&l=russian";
+        string errstr = "";
+        HttpWebRequest GetNewRequest(string targetUrl)
         {
-            if (!File.Exists("Cookies"))
-                return false;
-            else
-            {
-                int i = 0;
-                while (i < 5)
-                {
-                    try
-                    {
-
-                        FileStream fs = new FileStream("Cookies", FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                        byte[] buf = new byte[fs.Length];
-                        fs.Read(buf, 0, (int)fs.Length);
-                        MemoryStream ms = new MemoryStream(buf);
-                        StreamReader sr = new StreamReader(ms);
-                        string str = sr.ReadToEnd();
-                        sr.Close();
-                        ms.Close();
-                        fs.Close();
-                        Cookie = "sessionid=" + str.Remove(0, str.IndexOf("steamcommunity.comsessionid")).Substring(0, str.Remove(0, str.IndexOf("steamcommunity.comsessionid")).IndexOf("/")).Replace("steamcommunity.comsessionid", "") + ";";
-                        Cookie += "steamLogin=" + str.Remove(0, str.IndexOf("steamcommunity.comsteamLogin")).Substring(0, str.Remove(0, str.IndexOf("steamcommunity.comsteamLogin")).IndexOf("/")).Replace("steamcommunity.comsteamLogin", "") + ";";
-                        Cookie += "steamLoginSecure=" + str.Remove(0, str.IndexOf("steamcommunity.comsteamLoginSecure")).Substring(0, str.Remove(0, str.IndexOf("steamcommunity.comsteamLoginSecure")).IndexOf("/")).Replace("steamcommunity.comsteamLoginSecure", "") + ";";
-                        Cookie += "steamMachineAuth" + str.Remove(0, str.IndexOf("steamcommunity.comsteamMachineAuth")).Substring(0, str.Remove(0, str.IndexOf("steamcommunity.comsteamMachineAuth")).IndexOf("/")).Replace("steamcommunity.comsteamMachineAuth", "").Insert(17, "=") + ";";
-                        sessionId = Cookie.Split(';').Where(x => x.Split('=')[0] == "sessionid").First().Split('=')[1];
-                        return true;
-                    }
-                    catch
-                    {
-                        Thread.Sleep(1000);
-                        i++;
-                        if (i > 5)
-                            return false;
-                    }
-                }
-                return false;
-
-            }
+            HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(targetUrl);
+            request.AllowAutoRedirect = false;
+            return request;
         }
 
-        void KSearch()
+        private int errcounts = 0;
+        private void KSearch()
         {
             while (states.searchState != SearchState.Off)
             {
                 try
                 {
-                    NClient.Send((byte)ConnMessType.CAct, SearchState.Search.ToString());
-                    string sstr = "http://steamcommunity.com/market/search/render/?query=&start=0&count=" + GetCount1 + "&search_descriptions=0&sort_column=price&sort_dir=asc&appid=730&category_730_Type%5B%5D=tag_CSGO_Type_Knife&l=russian";
-                        //HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create("http://steamcommunity.com/market/search/render/?query=&start=0&count=" + GetCount1 + "&search_descriptions=0&sort_column=price&sort_dir=asc&appid=730&category_730_Type%5B%5D=tag_CSGO_Type_Knife&l=russian");
-                    HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create(sstr);
-                    //HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create("http://steamcommunity.com/market/search/render/?query=&start=0&count=1&search_descriptions=0&sort_column=price&sort_dir=asc&appid=730&l=russian");
-                    req.Proxy = null;
-                    req.Method = "GET";
-                    req.Timeout = 2000;
-                    req.Headers.Add("Cookie", Cookie);
-                    WebResponse resp = req.GetResponse(); 
+                    Thread.Sleep(100);
+                    string sstr = "";
+                    if (!test) sstr = sstrnt;
+                    else sstr = sstrt;
 
-                    StreamReader sr = new StreamReader(resp.GetResponseStream());
-                    string str = sr.ReadToEnd(); 
-                    sr.Close(); 
+                    string str;
+                    if (!test)
+                        str = SAuth.Http.Get("http://steamcommunity.com/market/search/render/",
+                            "query=&start=0&count=" + GetCount1 +
+                            "&search_descriptions=0&sort_column=price&sort_dir=asc&appid=730&category_730_Type%5B%5D=tag_CSGO_Type_Knife&l=russian",
+                            timeout: 2500);
+                    else
+                        str = SAuth.Http.Get("http://steamcommunity.com/market/search/render/",
+                            "query=&start=0&count=" + GetCount1 +
+                            "&search_descriptions=0&sort_column=price&sort_dir=asc&appid=730&category_730_ItemSet%5B%5D=any&category_730_ProPlayer%5B%5D=any&category_730_TournamentTeam%5B%5D=any&category_730_Weapon%5B%5D=any&category_730_Exterior%5B%5D=tag_WearCategory2&l=russian",
+                            timeout: 2500);
+                    errcounts = 0;
                     dynamic obj = JsonConvert.DeserializeObject(str);
-                    string htmlstr = obj.results_html.ToString(); 
-                    HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument(); 
-                    doc.LoadHtml(htmlstr); 
+                    string htmlstr = obj.results_html.ToString();
+                    HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
+                    doc.LoadHtml(htmlstr);
                     List<listing> prices = new List<listing>();
-                    foreach (HtmlAgilityPack.HtmlNode q in doc.DocumentNode.Descendants("div").Where(x => x.GetAttributeValue("class", "") == "market_listing_right_cell market_listing_their_price"))
+                    errstr = str;
+                    var q =
+                        doc.DocumentNode.Descendants("div")
+                            .Where(
+                                x =>
+                                    x.GetAttributeValue("class", "") ==
+                                    "market_listing_right_cell market_listing_their_price")
+                            .ToArray();
+                    for (int i = 0; i < q.Count(); i++)
                     {
                         prices.Add(new listing()
                         {
-                            sender = q.ParentNode.ParentNode.GetAttributeValue("href", ""),
-                            price = Convert.ToDouble(q.InnerText.Replace("\t", "").Replace("\n", "").Replace("\r", "").Split(' ')[0].Replace("От", ""))
+                            sender = doc.GetElementbyId("resultlink_" + i.ToString()).GetAttributeValue("href", ""),
+                            price =
+                                Convert.ToDouble(
+                                    q[i].InnerText.Replace("\t", "").Replace("\n", "").Replace("\r", "").Split(' ')[0]
+                                        .Replace("От", ""))
                         });
                     }
                     prices = prices.OrderBy(x => x.price).ToList();
+                    //if (prices.First().price <= 792.77 && !mode)
+                    //{
+                    //    NClient.Send((byte)ConnMessType.FK, prices.First().sender.ToString());
+                    //}
                     //NClient.Send((byte)ConnMessType.Log, "SS:" + prices.First().price.ToString());
                     if (LastPrice != prices.First().price)
                     {
                         LastPrice = prices.First().price;
-                        Log.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => 
+                        Log.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
                         {
                             Log.Content = "Search. Current lowest price: " + LastPrice.ToString();
                         }));
                     }
                     if (prices.First().price <= MoneyLimit)
                     {
+                        if (qwer1.Where(x => x.link == prices.First().sender).Count() != 0 &&
+                            qwer1.Where(x => Convert.ToDouble(x.price) == prices.First().price).Count() != 0) continue;
+                        DateTime dt = DateTime.Now;
                         states.searchState = SearchState.GetKnife;
                         //Console.WriteLine("Get knife");
+                        linkk = prices.First().sender;
                         KGetLot(prices.First().sender);
-                        KnivesStats1.Insert(0, new SKnife() { date = DateTime.Now, price = prices.First().price.ToString(), sender = prices.First().sender });
-                        SaveStats1();
+                        KnivesStats1.Insert(0,
+                            new SKnife()
+                            {
+                                date = DateTime.Now,
+                                price = prices.First().price.ToString(),
+                                sender = prices.First().sender
+                            });
+                        //SaveStats1(); Console.WriteLine("711" + (DateTime.Now - dt).TotalMilliseconds);
                     }
+
+
                 }
                 catch (Exception e)
                 {
-                    //Console.WriteLine("Search error: " + e.ToString());
+                    Console.WriteLine("[" + sac.ToString() + "/" + DateTime.Now.ToString() + "]:" + "Search error");
+                    errcounts++;
+                    sac++;
+                    if (errcounts > 100)
+                        Thread.Sleep(1000 * 60 * 30);
                     //NClient.Send((byte)ConnMessType.Log, "Se");
                 }
             }
         }
+
+        bool ba = false;
+        int sac = 0;
+        bool qwer = false;
+        class qweq
+        {
+            public string link { get; set; }
+            public string price { get; set; }
+        }
+        List<qweq> qwer1 = new List<qweq>();
         void KGetLot(string sender)
         {
+            //qwer = true;
+            //ba = false;
+            //int tcount = 0;
+            //System.Timers.Timer t = new System.Timers.Timer(100);
+            //t.Elapsed += (ss, ee) =>
+            //{
+            //    if (tcount > 13 || ba)
+            //    {
+            //        qwer = false;
+            //        t.Stop();
+            //        t.Enabled = false;
+
+            //    }
+            //    tcount++;
+            //};
+            //t.Enabled = true;
+
+            //while (qwer)
+            //{
             try
             {
-                NClient.Send((byte)ConnMessType.CAct, SearchState.GetKnife.ToString());
-                string str = "";
-                HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create(sender + "/render?start=0&count=" + GetCount2 + "&currency=5&language=english&format=json");
-                req.Proxy = null;
-                req.Method = "GET";
-                req.Timeout = 2000;
-                WebResponse resp = req.GetResponse();
-                StreamReader sr = new StreamReader(resp.GetResponseStream());
-                str = sr.ReadToEnd();
-                sr.Close();
+                Console.WriteLine("Lot: " + DateTime.Now.ToShortTimeString());
+                states.searchState = SearchState.GetKnife;
+                //NClient.Send((byte)ConnMessType.CAct, SearchState.GetKnife.ToString());
+                string str = SAuth.Http.Get(sender + "/render",
+                            "start=0&count=" + GetCount2 + "&currency=5&language=english&format=json",
+                            timeout: 2500);
+                
+                errstr = str;
                 Newtonsoft.Json.Linq.JObject obj = Newtonsoft.Json.Linq.JObject.Parse(str);
                 List<listing2> lst = new List<listing2>();
-                foreach(Newtonsoft.Json.Linq.JToken jt in obj["listinginfo"])
+                foreach (Newtonsoft.Json.Linq.JToken jt in obj["listinginfo"])
                 {
                     if (jt.First["price"].ToString() != "0")
                     {
@@ -740,22 +816,22 @@ namespace Knife
                 }
                 lst = lst.OrderBy(x => x.total).ToList();
                 List<listing2> ToBuy = new List<listing2>();
-                if(lst.Count != 0)
+                if (lst.Count != 0)
                 {
-                    foreach(listing2 l in lst)
+                    foreach (listing2 l in lst)
                     {
-                        if(Convert.ToDouble(l.total) / 100 <= MoneyLimit)
+                        if (Convert.ToDouble(l.total) / 100 <= MoneyLimit)
                         {
                             ToBuy.Add(l);
-                        } 
+                        }
                     }
-                    if(ToBuy.Count != 0)
+                    if (ToBuy.Count != 0)
                     {
                         states.searchState = SearchState.Buying;
-                        foreach(listing2 l in ToBuy)
+                        foreach (listing2 l in ToBuy)
                             new Thread(() => KBuy(l)).Start();
                         //NClient.Send((byte)ConnMessType.Log, "GetLotsSucc: " + ToBuy.Count + "/" + lst.Count);
-                        while(ToBuy.Where(x => !x.BA).Count() != 0)
+                        while (ToBuy.Where(x => !x.BA).Count() != 0)
                             Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { }));
                         NewKnives(ToBuy);
 
@@ -763,6 +839,8 @@ namespace Knife
                     else
                     {
                         states.searchState = SearchState.Search;
+                        qwer1.Add(new qweq() { link = lst.First().sender, price = lst.First().price });
+                        conterq = 0;
                         //Console.WriteLine("All knives corrupt");
                         //NClient.Send((byte)ConnMessType.Log, "All knives corrupt");
                     }
@@ -770,67 +848,95 @@ namespace Knife
                 else
                 {
                     states.searchState = SearchState.Search;
+                    qwer1.Add(new qweq() { link = lst.First().sender, price = lst.First().price });
+                    conterq = 0;
                     //Console.WriteLine("All sold");
                     //NClient.Send((byte)ConnMessType.Log, "All sold");
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
+                bool qwe = false;
+                if (e.ToString().IndexOf("не содержит") != -1) qwe = true;
                 states.searchState = SearchState.Search;
-                //Console.WriteLine("GetKnife error: " + e.Message);
+                Console.WriteLine("GetKnife error: " + e.ToString());
                 //NClient.Send((byte)ConnMessType.Log, "GetKnife error: " + e.Message);
             }
+            //}
         }
+        //bool runn = false;
         void KBuy(listing2 l)
         {
+            //HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create("https://steamcommunity.com/market/buylisting/" + l.listingid);
+            
+            //req.Proxy = null;
+            //req.Method = "POST";
+            //req.Timeout = 10000;
+            //req.ContentType = "application/x-www-form-urlencoded;";
+            //req.Referer = l.sender;
+            //if (!sub)
+            //    req.Headers.Add("Cookie", SAuth.CManager.Get());
+            //else
+            //    req.Headers.Add("Cookie", subc);
+            //req.ServicePoint.ConnectionLimit = 10;
+            //byte[] sentData;
+            //if (!sub)
+            //    sentData = Encoding.GetEncoding(1251).GetBytes("sessionid=" + SAuth.cook.GetS() + "&currency=5&subtotal=" + l.price + "&fee=" + l.fee + "&total=" + l.total + "&quantity=1");
+            //else
+            //    sentData = Encoding.GetEncoding(1251).GetBytes("sessionid=" + subs + "&currency=5&subtotal=" + l.price + "&fee=" + l.fee + "&total=" + l.total + "&quantity=1");
+            //req.ContentLength = sentData.Length;
+            //Stream sendStream = req.GetRequestStream();
+            //sendStream.Write(sentData, 0, sentData.Length);
+            //sendStream.Flush();
+            //sendStream.Close();
+            //WebResponse resp = req.GetResponse();
+            //StreamReader sr = new StreamReader(resp.GetResponseStream());
+            //string str = sr.ReadToEnd();
+            //sr.Close();
             try
             {
-                NClient.Send((byte)ConnMessType.CAct, SearchState.Buying.ToString());
-                HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create("https://steamcommunity.com/market/buylisting/" + l.listingid);
-                req.Proxy = null;
-                req.Method = "POST";
-                req.Timeout = 10000;
-                req.ContentType = "application/x-www-form-urlencoded;";
-                req.Referer = l.sender;
+                //NClient.Send((byte)ConnMessType.CAct, SearchState.Buying.ToString());
+                SAuth.Params p = new SAuth.Params();
+                p.Add("sessionid", SAuth.CManager.GetS());
+                p.Add("currency", "5");
+                p.Add("subtotal", l.price);
+                p.Add("fee", l.fee);
+                p.Add("total", l.total);
+                p.Add("quantity", "1");
+
+                string str = SAuth.Http.Post("https://steamcommunity.com/market/buylisting/" + l.listingid, p.Get(), 10000, referer: l.sender);
+                
                 if (!sub)
-                    req.Headers.Add("Cookie", Cookie);
+                {
+                    Newtonsoft.Json.Linq.JObject obj = Newtonsoft.Json.Linq.JObject.Parse(str);
+                    double walb = Convert.ToDouble(obj["wallet_info"]["wallet_balance"].ToString()) / 100;
+                    if (walb < AccMoney)
+                        AccMoney = walb;
+                    if (AccMoney < MoneyLimit)
+                        MoneyLimit = AccMoney;
+                    //states.searchState = SearchState.Search;
+                    //Console.WriteLine("Buying succ");
+                    //NCclient.Send((byte)ConnMessType.Log, "Buying succ:" + (Convert.ToDouble(l.total) / 100));
+                    l.BA = true;
+                    l.succ = true;
+                    states.newknife = true;
+                }
                 else
-                    req.Headers.Add("Cookie", subc);
-                req.ServicePoint.ConnectionLimit = 10;
-                byte[] sentData;
-                if(!sub)
-                    sentData = Encoding.GetEncoding(1251).GetBytes("sessionid=" + sessionId + "&currency=5&subtotal=" + l.price + "&fee=" + l.fee + "&total=" + l.total + "&quantity=1");
-                else
-                    sentData = Encoding.GetEncoding(1251).GetBytes("sessionid=" + subs + "&currency=5&subtotal=" + l.price + "&fee=" + l.fee + "&total=" + l.total + "&quantity=1");
-                req.ContentLength = sentData.Length;
-                Stream sendStream = req.GetRequestStream();
-                sendStream.Write(sentData, 0, sentData.Length);
-                sendStream.Flush();
-                sendStream.Close();
-                WebResponse resp = req.GetResponse();
-                StreamReader sr = new StreamReader(resp.GetResponseStream());
-                string str = sr.ReadToEnd();
-                sr.Close();
-                Newtonsoft.Json.Linq.JObject obj = Newtonsoft.Json.Linq.JObject.Parse(str);
-                double walb = Convert.ToDouble(obj["wallet_info"]["wallet_balance"].ToString()) / 100;
-                if (walb < AccMoney)
-                    AccMoney = walb;
-                if (AccMoney < MoneyLimit)
-                    MoneyLimit = AccMoney;
-                //states.searchState = SearchState.Search;
-                //Console.WriteLine("Buying succ");
-                //NCclient.Send((byte)ConnMessType.Log, "Buying succ:" + (Convert.ToDouble(l.total) / 100));
-                l.BA = true;
-                l.succ = true;
-                states.newknife = true;
+                {
+                    l.BA = true;
+                    l.succ = false;
+                    //NClient.Send((byte)ConnMessType.NSK, "");
+                }
+                qwer = false;
             }
             catch (Exception e)
             {
                 //states.searchState = SearchState.Search;
-                //Console.WriteLine("Buying error: " + e.Message);
+                Console.WriteLine("Buying error: " + e.Message);
                 //NCclient.Send((byte)ConnMessType.Log, "Buying error: " + e.Message);
                 l.BA = true;
                 l.succ = false;
+                qwer = false;
             }
         }
         void NewKnives(List<listing2> l)
@@ -849,27 +955,10 @@ namespace Knife
                 });
             }
             SaveStats(nk ? true : false);
-            states.searchState = SearchState.Search;
-        }
-        private void wb_InitializeView(object sender, Awesomium.Core.WebViewEventArgs e)
-        {
-            wb.WebSession = Awesomium.Core.WebCore.CreateWebSession(System.Environment.CurrentDirectory, new Awesomium.Core.WebPreferences());
-        }
-        private void wb_LoadingFrameComplete(object sender, Awesomium.Core.FrameEventArgs e)
-        {
-            
-            wbload = true;
-            if(Steam_waitforlog)
-            {
-                if (wb.Source.AbsoluteUri == "http://steamcommunity.com/market/" || wb.Source.AbsoluteUri == "https://steamcommunity.com/market/")
-                {
-                    Steam_waitforlog = false;
-                    states.steamAuthState = SteamAuthState.NotAuth;
-                    wb.Visibility = System.Windows.Visibility.Hidden;
-                    Width = lastwndsize.X;
-                    Height = lastwndsize.Y;
-                }
-            }
+            if (!mode)
+                states.searchState = SearchState.Search;
+            else
+                states.searchState = SearchState.Off;
         }
 
         private void MetroWindow_Loaded(object sender, RoutedEventArgs e)
@@ -880,12 +969,12 @@ namespace Knife
             //sw.Write(Crypt.Crypt.Encrypt("nothing"));
             //sw.Close();
             //fs.Close();
-            //AllocConsole();
+            AllocConsole();
             states.steamAuthState = SteamAuthState.NotAuth;
             states.serverState = ServerState.NotAuth;
             states.searchState = SearchState.Off;
             sett.Margin = new Thickness(0, 0, -sett.Width, 30);
-            if (LoadSettings() && LoadStats() && LoadStats1())
+            if (LoadSettings())
             {
                 System.Timers.Timer CheckAllTimer = new System.Timers.Timer(1000);
                 CheckAllTimer.Elapsed += (ss, ee) =>
@@ -899,7 +988,7 @@ namespace Knife
         private void MW_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             states.searchState = SearchState.Off;
-            NClient.Shutdown();
+            //NClient.Shutdown();
         }
         private void Settings_Button_Click(object sender, RoutedEventArgs e)
         {
@@ -912,7 +1001,10 @@ namespace Knife
                 GetCountLSlider.Maximum = 100;
                 GetCountLSlider.Value = Convert.ToDouble(GetCount2);
 
-                MoneySlider.Maximum = AccMoney;
+                if (AccMoney <= 1500)
+                    MoneySlider.Maximum = AccMoney;
+                else
+                    MoneySlider.Maximum = 1500;
                 MoneySlider.Value = MoneyLimit;
 
                 ThicknessAnimation ta = new ThicknessAnimation();
@@ -953,7 +1045,7 @@ namespace Knife
                     KnivesStats.Clear();
                     FileStream fs = new FileStream("Knives.key", FileMode.Open, FileAccess.Read);
                     StreamReader sr = new StreamReader(fs);
-                    string str = Crypt.Crypt.Decrypt(sr.ReadToEnd());
+                    string str = sr.ReadToEnd();
                     sr.Close();
                     fs.Close();
                     if (str != "nothing")
@@ -985,12 +1077,12 @@ namespace Knife
             string str = "";
             foreach (SKnife k in KnivesStats)
                 str += k.date.ToString() + "<:>" + k.price + "<:>" + k.succ.ToString() + "<:>" + k.sender + "<::>";
-            string estr = Crypt.Crypt.Encrypt(str);
+            string estr = str;
             sw.Write(estr);
             sw.Close();
             fs.Close();
-            if(send)
-                NClient.Send((byte)ConnMessType.NK, estr);
+            //if(send)
+                //NClient.Send((byte)ConnMessType.NK, estr);
         }
         bool LoadStats1()
         {
@@ -1006,7 +1098,7 @@ namespace Knife
                     KnivesStats1.Clear();
                     FileStream fs = new FileStream("Knives1.key", FileMode.Open, FileAccess.Read);
                     StreamReader sr = new StreamReader(fs);
-                    string str = Crypt.Crypt.Decrypt(sr.ReadToEnd());
+                    string str = sr.ReadToEnd();
                     sr.Close();
                     fs.Close();
                     if (str != "nothing")
@@ -1037,7 +1129,7 @@ namespace Knife
             string str = "";
             foreach (SKnife k in KnivesStats1)
                 str += k.date.ToString() + "<:>" + k.price + "<:>" + k.sender + "<::>";
-            sw.Write(Crypt.Crypt.Encrypt(str));
+            sw.Write(str);
             sw.Close();
             fs.Close();
         }
@@ -1099,15 +1191,15 @@ namespace Knife
         }
         private void Img_SteamAuth_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            if (states.steamAuthState == SteamAuthState.NotLogged)
-            {
-                lastwndsize = new Point(Width, Height);
-                wb.Visibility = System.Windows.Visibility.Visible;
-                Width = 1280;
-                Height = 720;
-                wb.Source = new Uri("https://steamcommunity.com/login/home/?goto=market%2F");
-                Steam_waitforlog = true;
-            }
+            //if (states.steamAuthState == SteamAuthState.NotLogged)
+            //{
+            //    lastwndsize = new Point(Width, Height);
+            //    wb.Visibility = System.Windows.Visibility.Visible;
+            //    Width = 1280;
+            //    Height = 720;
+            //    wb.Source = new Uri("https://steamcommunity.com/login/home/?goto=market%2F");
+            //    Steam_waitforlog = true;
+            //}
         }
         private void B_KnivesStat_Click(object sender, RoutedEventArgs e)
         {
@@ -1116,8 +1208,16 @@ namespace Knife
         }
         private void B_KnivesStat_Click1(object sender, RoutedEventArgs e)
         {
-            Stats s = new Stats(KnivesStats1);
-            s.Show();
+            if (test)
+            {
+                test = false;
+                this.Title = "v2";
+            }
+            else
+            {
+                test = true;
+                this.Title = "v2t";
+            }
         }
         public class listing
         {
@@ -1134,41 +1234,64 @@ namespace Knife
             public string sender { get; set; }
             public bool succ { get; set; }
         }
+        bool mode = false;
         private void Button_Click1(object sender, RoutedEventArgs e)
         {
-
+            if(states.searchState != SearchState.Off)
+            {
+                mode = true;   
+                states.searchState = SearchState.Off;
+            }
+            else
+            {
+                mode = false;
+                states.searchState = SearchState.Search;
+            }
+            //NClient.Send((byte)ConnMessType.CAct, states.searchState.ToString());
         }
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            wbload = false;
-            wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
-            {
-                wb.Source = new Uri("http://google.com");
-                wb.Source = new Uri("http://steamcommunity.com/market/");
-            }));
-            while (!wbload)
-            {
-                Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { }));
-            }
-            string qwe = "";
-            wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
-            {
-                qwe = wb.Source.AbsoluteUri;
-            }));
-            if (qwe == "http://steamcommunity.com/market/" || qwe == "https://steamcommunity.com/market/")
-            {
-                HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
-                wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
-                {
-                    doc.LoadHtml(wb.ExecuteJavascriptWithResult("document.documentElement.outerHTML").ToString());
-                }));
-                if (doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").Count() != 0)
-                {
-                    AccMoney = Convert.ToDouble(doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").First().InnerText.Split(' ')[0]);
-                    MoneySlider.Maximum = AccMoney;
-                    MoneySlider.Value = MoneyLimit;
-                }
-            }
+            //AccMoney = Convert.ToDouble(SAuth.GetMoney());
+            //if(AccMoney == -1)
+            //{
+            //    states.steamAuthState = SteamAuthState.NotAuth;
+            //    MessageBox.Show("Login error. Closing");
+            //    Application.Current.Shutdown();
+            //}
+            //else
+            //{
+            //    MoneySlider.Maximum = AccMoney;
+            //    MoneySlider.Value = MoneyLimit;
+            //}
+            //wbload = false;
+            //wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
+            //{
+            //    wb.Source = new Uri("http://google.com");
+            //    wb.Source = new Uri("http://steamcommunity.com/market/");
+            //}));
+            //while (!wbload)
+            //{
+            //    Application.Current.Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { }));
+            //}
+            //string qwe = "";
+            //wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
+            //{
+            //    qwe = wb.Source.AbsoluteUri;
+            //}));
+            //if (qwe == "http://steamcommunity.com/market/" || qwe == "https://steamcommunity.com/market/")
+            //{
+            //    HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
+            //    wb.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
+            //    {
+            //        doc.LoadHtml(wb.ExecuteJavascriptWithResult("document.documentElement.outerHTML").ToString());
+            //    }));
+            //    if (doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").Count() != 0)
+            //    {
+            //        AccMoney = Convert.ToDouble(doc.DocumentNode.Descendants("span").Where(x => x.Id == "marketWalletBalanceAmount").First().InnerText.Split(' ')[0]);
+            //        MoneySlider.Maximum = AccMoney;
+            //        MoneySlider.Value = MoneyLimit;
+            //    }
+            //}
         }
 
         private void ColorGrid_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -1207,96 +1330,98 @@ namespace Knife
         Log,
         CAct,
         Alive,
-        NK
+        NK,
+        upd,
+        NSK,
+        FK
     }
-    public static class NClient
-    {
-        public static event ConnectedEventHandler Connected;
-        public delegate void ConnectedEventHandler(string State);
+    //public static class NClient
+    //{
+    //    public static event ConnectedEventHandler Connected;
+    //    public delegate void ConnectedEventHandler(string State);
 
-        public static event DisconnectedEventHandler Disconnected;
-        public delegate void DisconnectedEventHandler();
+    //    public static event DisconnectedEventHandler Disconnected;
+    //    public delegate void DisconnectedEventHandler();
 
-        public static event ReceivedEventHandler Received;
-        public delegate void ReceivedEventHandler(byte MType, string Mess);
+    //    public static event ReceivedEventHandler Received;
+    //    public delegate void ReceivedEventHandler(byte MType, string Mess);
 
-        static NetClient s_client;
-        static NClient()
-        {
-            NetPeerConfiguration config = new NetPeerConfiguration("Knife");
-            config.AutoFlushSendQueue = false;
-            config.ConnectionTimeout = 10;
-            s_client = new NetClient(config);
-            s_client.RegisterReceivedCallback(new SendOrPostCallback(callb));
-        }
-        public static void Connect(string host, int port, string AM)
-        {
-            s_client.Start();
-            NetOutgoingMessage hail = s_client.CreateMessage(AM);
-            s_client.Connect(host, port, hail);
-        }
-        public static void Shutdown()
-        {
-            s_client.Disconnect("Requested by user");
-            s_client.Shutdown("");
-        }
-        public static void Send(byte MType, string Mess)
-        {
-            string ToSend = MType.ToString() + "<:SS:>" + Mess;
-            NetOutgoingMessage om = s_client.CreateMessage(ToSend);
-            s_client.SendMessage(om, NetDeliveryMethod.ReliableOrdered);
-            s_client.FlushSendQueue();
-        }
-        static void callb(object peer)
-        {
-            NetIncomingMessage im;
-            while ((im = s_client.ReadMessage()) != null)
-            {
-                // handle incoming message
-                switch (im.MessageType)
-                {
-                    case NetIncomingMessageType.DebugMessage:
-                    case NetIncomingMessageType.ErrorMessage:
-                    case NetIncomingMessageType.WarningMessage:
-                    case NetIncomingMessageType.VerboseDebugMessage:
-                        string text = im.ReadString();
-                        //Output(text);
-                        break;
-                    case NetIncomingMessageType.StatusChanged:
-                        NetConnectionStatus status = (NetConnectionStatus)im.ReadByte();
+    //    static NetClient s_client;
+    //    static NClient()
+    //    {
+    //        NetPeerConfiguration config = new NetPeerConfiguration("Knife");
+    //        config.AutoFlushSendQueue = false;
+    //        config.ConnectionTimeout = 10;
+    //        s_client = new NetClient(config);
+    //        s_client.RegisterReceivedCallback(new SendOrPostCallback(callb));
+    //    }
+    //    public static void Connect(string host, int port, string AM)
+    //    {
+    //        s_client.Start();
+    //        NetOutgoingMessage hail = s_client.CreateMessage(AM);
+    //        s_client.Connect(host, port, hail);
+    //    }
+    //    public static void Shutdown()
+    //    {
+    //        s_client.Disconnect("Requested by user");
+    //        s_client.Shutdown("");
+    //    }
+    //    public static void Send(byte MType, string Mess)
+    //    {
+    //        string ToSend = MType.ToString() + "<:SS:>" + Mess;
+    //        NetOutgoingMessage om = s_client.CreateMessage(ToSend);
+    //        s_client.SendMessage(om, NetDeliveryMethod.ReliableOrdered);
+    //        s_client.FlushSendQueue();
+    //    }
+    //    static void callb(object peer)
+    //    {
+    //        NetIncomingMessage im;
+    //        while ((im = s_client.ReadMessage()) != null)
+    //        {
+    //            // handle incoming message
+    //            switch (im.MessageType)
+    //            {
+    //                case NetIncomingMessageType.DebugMessage:
+    //                case NetIncomingMessageType.ErrorMessage:
+    //                case NetIncomingMessageType.WarningMessage:
+    //                case NetIncomingMessageType.VerboseDebugMessage:
+    //                    string text = im.ReadString();
+    //                    //Output(text);
+    //                    break;
+    //                case NetIncomingMessageType.StatusChanged:
+    //                    NetConnectionStatus status = (NetConnectionStatus)im.ReadByte();
 
-                        if (status == NetConnectionStatus.Connected)
-                        {
-                            ConnectedEventHandler CE = Connected;
-                            if (CE != null)
-                                CE(im.SenderConnection.RemoteHailMessage.ReadString());
-                        }
-                        if (status == NetConnectionStatus.Disconnected)
-                        {
-                            DisconnectedEventHandler DE = Disconnected;
-                            if (DE != null)
-                                DE();
-                        }
+    //                    if (status == NetConnectionStatus.Connected)
+    //                    {
+    //                        ConnectedEventHandler CE = Connected;
+    //                        if (CE != null)
+    //                            CE(im.SenderConnection.RemoteHailMessage.ReadString());
+    //                    }
+    //                    if (status == NetConnectionStatus.Disconnected)
+    //                    {
+    //                        DisconnectedEventHandler DE = Disconnected;
+    //                        if (DE != null)
+    //                            DE();
+    //                    }
 
-                        string reason = im.ReadString();
-                        //Output(status.ToString() + ": " + reason);
+    //                    string reason = im.ReadString();
+    //                    //Output(status.ToString() + ": " + reason);
 
-                        break;
-                    case NetIncomingMessageType.Data:
-                        string msg = im.ReadString();
-                        byte MType = Convert.ToByte(msg.Split(new string[]{"<:SS:>"}, StringSplitOptions.None)[0]);
-                        string Mess = msg.Split(new string[]{"<:SS:>"}, StringSplitOptions.None)[1];
-                        ReceivedEventHandler RE = Received;
-                        if (RE != null)
-                            RE(MType, Mess);
-                        break;
-                    default:
-                        //Output("Unhandled type: " + im.MessageType + " " + im.LengthBytes + " bytes");
-                        break;
-                }
-                s_client.Recycle(im);
-            }
-        }
-    }
-
+    //                    break;
+    //                case NetIncomingMessageType.Data:
+    //                    string msg = im.ReadString();
+    //                    byte MType = Convert.ToByte(msg.Split(new string[]{"<:SS:>"}, StringSplitOptions.None)[0]);
+    //                    string Mess = msg.Split(new string[]{"<:SS:>"}, StringSplitOptions.None)[1];
+    //                    ReceivedEventHandler RE = Received;
+    //                    if (RE != null)
+    //                        RE(MType, Mess);
+    //                    break;
+    //                default:
+    //                    //Output("Unhandled type: " + im.MessageType + " " + im.LengthBytes + " bytes");
+    //                    break;
+    //            }
+    //            s_client.Recycle(im);
+    //        }
+    //    }
+    //}
 }
